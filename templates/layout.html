@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title or 'Anime Recommender' }}</title>
+
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3">
+    <a class="navbar-brand" href="/">🔥 Anime Recommender</a>
+
+    <div class="ms-auto">
+        {% if session.username %}
+            <span class="text-white me-3">Xin chào, {{ session.username }}!</span>
+            <a href="/favorites" class="btn btn-warning btn-sm me-2">💛 Yêu thích</a>
+            <a href="/logout" class="btn btn-danger btn-sm">Đăng xuất</a>
+        {% else %}
+            <a href="/login" class="btn btn-outline-light btn-sm me-2">Đăng nhập</a>
+            <a href="/register" class="btn btn-warning btn-sm">Đăng ký</a>
+        {% endif %}
+    </div>
+</nav>
+
+<div class="container mt-4">
+    {% block content %}{% endblock %}
+</div>
+
+</body>
+</html>
+

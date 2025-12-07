@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h3 class="mb-4">📝 Đăng ký tài khoản</h3>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<form method="post" class="w-50">
+
+    <div class="mb-3">
+        <label class="form-label">Tên đăng nhập</label>
+        <input name="username" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Mật khẩu</label>
+        <input type="password" name="password" class="form-control" required>
+    </div>
+
+    <button class="btn btn-success">Đăng ký</button>
+
+    <p class="mt-3">
+        Đã có tài khoản? <a href="/login">Đăng nhập</a>
+    </p>
+</form>
+
+{% endblock %}

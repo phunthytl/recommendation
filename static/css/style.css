@@ -1,0 +1,46 @@
+body {
+    background: #f8f9fa;
+}
+
+.anime-card {
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.anime-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+}
+
+/* ẢNH ĐỒNG NHẤT */
+.anime-card .card-img-top {
+    width: 100%;
+    height: 260px;
+    object-fit: cover;
+    object-position: center;
+}
+
+.anime-title-link {
+    font-weight: 600;
+    font-size: 15px;
+    color: #000 !important;
+    text-decoration: none !important;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+
+    padding: 0 4px;
+}
+
+/* Hover đổi màu = đẹp */
+.anime-title-link:hover {
+    color: #004cff !important;
+}
+
+/* GENRES GỌN */
+.card-body p {
+    min-height: 38px;
+}

@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h2 class="mb-4">🔥 Danh sách Anime</h2>
+
+<div class="row g-4">
+    {% for a in animes %}
+    <div class="col-6 col-md-3 col-lg-2">
+        <div class="card anime-card">
+            <img src="{{ a.image }}" class="card-img-top">
+            <div class="card-body text-center">
+                <a href="/anime/{{ a.id }}" class="anime-title-link">{{ a.title }}</a>
+                <p class="text-muted small">{{ a.genres }}</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<nav aria-label="Anime pages">
+    <ul class="pagination justify-content-center">
+
+        <!-- Prev -->
+        <li class="page-item {% if not has_prev %}disabled{% endif %}">
+            <a class="page-link" href="/?page={{ page-1 }}">«</a>
+        </li>
+
+        <!-- Số trang -->
+        {% for p in pagination %}
+            {% if p == '...' %}
+                <li class="page-item disabled"><a class="page-link">...</a></li>
+            {% else %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link" href="/?page={{ p }}">{{ p }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        <!-- Next -->
+        <li class="page-item {% if not has_next %}disabled{% endif %}">
+            <a class="page-link" href="/?page={{ page+1 }}">»</a>
+        </li>
+
+    </ul>
+</nav>
+
+
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h2 class="mb-4">📊 Admin Dashboard – Tổng hợp hệ gợi ý</h2>
+
+<!-- ========================= -->
+<!-- THỐNG KÊ -->
+<!-- ========================= -->
+<div class="row mb-4">
+    <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><h6>Tổng Anime</h6><h3>{{ total_items }}</h3></div></div>
+    <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><h6>Tổng User</h6><h3>{{ total_users }}</h3></div></div>
+    <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><h6>Lượt Yêu Thích</h6><h3>{{ total_fav }}</h3></div></div>
+    <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><h6>Số Thể Loại</h6><h3>{{ total_genres }}</h3></div></div>
+</div>
+
+<hr>
+
+<!-- ========================= -->
+<!-- BIỂU ĐỒ -->
+<!-- ========================= -->
+<h3 class="mb-3">📈 Trực quan dữ liệu</h3>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card p-2 shadow-sm">
+            <h6 class="text-center">Phân bố Score</h6>
+            <img src="data:image/png;base64,{{ score_img }}" class="img-fluid rounded">
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card p-2 shadow-sm">
+            <h6 class="text-center">Top Genres</h6>
+            <img src="data:image/png;base64,{{ genres_img }}" class="img-fluid rounded">
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card p-2 shadow-sm">
+            <h6 class="text-center">Top Favorites</h6>
+            <img src="data:image/png;base64,{{ fav_img }}" class="img-fluid rounded">
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card p-2 shadow-sm">
+            <h6 class="text-center">Heatmap tương quan</h6>
+            <img src="data:image/png;base64,{{ heatmap_img }}" class="img-fluid rounded">
+        </div>
+    </div>
+</div>
+
+<hr>
+
+<!-- ========================= -->
+<!-- EVALUATION -->
+<!-- ========================= -->
+<h3 class="mb-3">🧠 Đánh giá mô hình</h3>
+
+<h5>🔷 Collaborative Filtering (CF)</h5>
+<div class="row mb-4">
+    <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><h6>Precision@10</h6><h4>{{ cf_precision|round(3) }}</h4></div></div>
+    <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><h6>Recall@10</h6><h4>{{ cf_recall|round(3) }}</h4></div></div>
+</div>
+
+<h5>🔷 Content-Based Filtering (CBF)</h5>
+<div class="row mb-4">
+    <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><h6>Precision@10</h6><h4>{{ cb_precision|round(3) }}</h4></div></div>
+    <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><h6>Recall@10</h6><h4>{{ cb_recall|round(3) }}</h4></div></div>
+</div>
+
+<hr>
+
+<!-- ========================= -->
+<!-- USERS -->
+<!-- ========================= -->
+<h3 class="mb-3">👤 Người dùng</h3>
+
+<div class="table-responsive">
+<table class="table table-bordered table-striped">
+    <tr><th>User ID</th><th>Username</th></tr>
+    {% for u in users %}
+    <tr><td>{{ u.user_id }}</td><td>{{ u.username }}</td></tr>
+    {% endfor %}
+</table>
+</div>
+
+<hr>
+
+<!-- ========================= -->
+<!-- ANIME -->
+<!-- ========================= -->
+<h3 class="mb-3">🎬 Danh sách Anime</h3>
+
+<div class="table-responsive">
+<table class="table table-bordered table-striped">
+    <tr><th>ID</th><th>Title</th><th>Genres</th><th>Score</th></tr>
+    {% for a in anime %}
+    <tr>
+        <td>{{ a.id }}</td>
+        <td>{{ a.title }}</td>
+        <td>{{ a.genres }}</td>
+        <td>{{ a.score }}</td>
+    </tr>
+    {% endfor %}
+</table>
+</div>
+
+<hr>
+
+<!-- ========================= -->
+<!-- FAVORITES -->
+<!-- ========================= -->
+<h3 class="mb-3">💛 Favorites</h3>
+
+<div class="table-responsive mb-5">
+<table class="table table-bordered table-striped">
+    <tr><th>User ID</th><th>Anime ID</th></tr>
+    {% for f in favorites %}
+    <tr><td>{{ f.user_id }}</td><td>{{ f.anime_id }}</td></tr>
+    {% endfor %}
+</table>
+</div>
+
+{% endblock %}

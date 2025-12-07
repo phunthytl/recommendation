@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="row">
+    <div class="col-md-4">
+        <img src="{{ anime.image }}" class="img-fluid rounded shadow">
+    </div>
+
+    <div class="col-md-8">
+        <h2>{{ anime.title }}</h2>
+        <p><b>Thể loại:</b> {{ anime.genres }}</p>
+        <p><b>Điểm:</b> ⭐ {{ anime.score }}</p>
+        <p><b>Số tập:</b> {{ anime.episodes }}</p>
+        <p><b>Trạng thái:</b> {{ anime.status }}</p>
+
+        {% if session.username %}
+            {% if is_favorite %}
+                <a href="/favorite/{{ anime.id }}" class="btn btn-warning">💛 Đã yêu thích</a>
+            {% else %}
+                <a href="/favorite/{{ anime.id }}" class="btn btn-outline-warning">💛 Thêm yêu thích</a>
+            {% endif %}
+        {% else %}
+            <a href="/login" class="btn btn-outline-secondary">Đăng nhập để yêu thích</a>
+        {% endif %}
+    </div>
+</div>
+
+<hr>
+
+<p><b>Mô tả:</b> {{ anime.synopsis_clean }}</p>
+
+<hr>
+
+<h3>Gợi ý anime tương tự</h3>
+
+<div class="row g-4 mt-2">
+    {% for a in recommendations %}
+    <div class="col-6 col-md-3 col-lg-2">
+        <div class="card anime-card">
+            <img src="{{ a.image }}" class="card-img-top">
+            <div class="card-body text-center">
+                <a href="/anime/{{ a.id }}" class="anime-title-link">{{ a.title }}</a>
+                <p class="text-muted small">{{ a.genres }}</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
