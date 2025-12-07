@@ -1,75 +1,59 @@
-import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
+import io
+import base64
 
-# Font đẹp hơn
-sns.set(style="whitegrid")
-
-
-def load_data(path="../data/anime_clean.csv"):
-    return pd.read_csv(path)
-
-
-# ========================
-# 1. Histogram Score
-# ========================
-def plot_score_distribution(df):
-    plt.figure(figsize=(10, 5))
-    sns.histplot(df["score"], bins=30, kde=True, color="skyblue")
-    plt.title("Distribution of Anime Scores")
-    plt.xlabel("Score")
-    plt.ylabel("Count")
-    plt.show()
+def plot_to_base64():
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", bbox_inches="tight")
+    buf.seek(0)
+    encoded = base64.b64encode(buf.read()).decode("utf-8")
+    buf.close()
+    plt.close()
+    return encoded
 
 
-# ========================
-# 2. Top Genres
-# ========================
-def plot_top_genres(df, top_n=20):
-    # explode genres_list
-    df_genres = df.explode("genres_list")
-    genre_count = df_genres["genres_list"].value_counts().head(top_n)
+# ==========================
+# 1) Histogram Score
+# ==========================
+def score_distribution(df):
+    plt.figure(figsize=(6, 4))
+    sns.histplot(df["score"].dropna(), bins=20, color="orange", edgecolor="black")
+    plt.title("Phân bố điểm số")
+    return plot_to_base64()
 
-    plt.figure(figsize=(12, 6))
+
+# ==========================
+# 2) Top genres
+# ==========================
+def top_genres(df, top_n=10):
+    genre_count = df["genres"].value_counts().head(top_n)
+    plt.figure(figsize=(6, 4))
     sns.barplot(x=genre_count.values, y=genre_count.index)
-    plt.title(f"Top {top_n} Genres")
-    plt.xlabel("Count")
-    plt.ylabel("Genre")
-    plt.show()
+    plt.title("Top Genres")
+    return plot_to_base64()
 
 
-# ========================
-# 3. Popularity vs Score
-# ========================
-def plot_popularity_vs_score(df):
-    plt.figure(figsize=(10, 6))
-    sns.scatterplot(data=df, x="score", y="popularity", alpha=0.5)
-    plt.title("Score vs Popularity")
-    plt.xlabel("Score")
-    plt.ylabel("Popularity (lower = more popular)")
-    plt.show()
+# ==========================
+# 3) Top Favorites
+# ==========================
+def top_favorites(df_fav):
+    top_fav = df_fav["anime_id"].value_counts().head(10)
+    plt.figure(figsize=(6, 4))
+    sns.barplot(x=top_fav.values, y=top_fav.index)
+    plt.title("Top Favorites")
+    return plot_to_base64()
 
 
-# ========================
-# 4. Heatmap của numeric correlation
-# ========================
-def plot_correlation_heatmap(df):
-    numeric = df[["score", "rank", "popularity", "favorites", "episodes"]]
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(numeric.corr(), annot=True, cmap="Blues")
-    plt.title("Correlation Heatmap")
-    plt.show()
+# ==========================
+# 4) Heatmap
+# ==========================
+def correlation_heatmap(df):
+    numeric_cols = ["score", "popularity", "favorites"]
+    df_num = df[numeric_cols].dropna()
 
-
-# ========================
-# RUN ALL
-# ========================
-def run_all_visualizations(path="../data/anime_clean.csv"):
-    df = load_data(path)
-
-    print("📊 Running EDA Visualizations...")
-    plot_score_distribution(df)
-    plot_top_genres(df)
-    plot_popularity_vs_score(df)
-    plot_correlation_heatmap(df)
-    print("✔ DONE!")
+    plt.figure(figsize=(6, 4))
+    sns.heatmap(df_num.corr(), annot=True, cmap="coolwarm", fmt=".2f")
+    plt.title("Heatmap tương quan")
+    return plot_to_base64()

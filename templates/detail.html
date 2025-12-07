@@ -9,10 +9,11 @@
     <div class="col-md-8">
         <h2>{{ anime.title }}</h2>
         <p><b>Thể loại:</b> {{ anime.genres }}</p>
-        <p><b>Điểm:</b> ⭐ {{ anime.score }}</p>
+        <p><b>Hạng:</b> {{ anime.popularity }}</p>
+        <p><b>Điểm:</b> {{ anime.score }}</p>
         <p><b>Số tập:</b> {{ anime.episodes }}</p>
         <p><b>Trạng thái:</b> {{ anime.status }}</p>
-
+        <p><b>Lượt yêu thích:</b> {{ anime.favorites }}</p>
         {% if session.username %}
             {% if is_favorite %}
                 <a href="/favorite/{{ anime.id }}" class="btn btn-warning">💛 Đã yêu thích</a>

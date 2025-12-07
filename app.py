@@ -1,25 +1,16 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-import pandas as pd
-import os
-import numpy as np
-
-# matplotlib + seaborn
-import matplotlib
+import pandas as pd, os, numpy as np, matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
-
-# convert plot → base64
-import io
-import base64
-
-# evaluation
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+import io, base64
 
 # models
 from models.content_based import ContentBased
 from models.collaborative import CollaborativeFiltering
 
+from utils.visualization import (score_distribution, top_genres, top_favorites,  correlation_heatmap)
+from utils.evaluation import (precision_recall_at_k_cf, precision_recall_at_k_cb, coverage)
 app = Flask(__name__)
 app.secret_key = "anime-secret-key"
 
@@ -42,9 +33,7 @@ if not os.path.exists(FAV_FILE):
     pd.DataFrame(columns=["user_id", "anime_id"]).to_csv(FAV_FILE, index=False)
 
 
-# ===========================
-# PAGINATION
-# ===========================
+# Phân trang
 def get_pagination(page, total_pages):
     pagination = []
     if page > 3:
@@ -91,9 +80,7 @@ def home():
     )
 
 
-# ===========================
-# DETAIL PAGE
-# ===========================
+# Chi tiết anime
 @app.route("/anime/<int:anime_id>")
 def detail(anime_id):
     anime = df[df["id"] == anime_id]
@@ -102,10 +89,10 @@ def detail(anime_id):
 
     anime = anime.iloc[0]
 
-    rec_ids = cb_model.recommend(anime_id, top_k=12)
+    rec_ids = cb_model.recommend(anime_id, top_k=10)
     rec_df = df[df["id"].isin(rec_ids)]
 
-    # check favorite
+    # Kiểm tra xem user đã favorite chưa
     user_fav = False
     if "user_id" in session:
         fav_df = pd.read_csv(FAV_FILE)
@@ -120,9 +107,7 @@ def detail(anime_id):
     )
 
 
-# ===========================
-# LOGIN
-# ===========================
+# Đăng nhập
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -147,9 +132,7 @@ def login():
     return render_template("login.html")
 
 
-# ===========================
-# REGISTER
-# ===========================
+# Đăng ký
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -169,9 +152,8 @@ def register():
     return render_template("register.html")
 
 
-# ===========================
-# FAVORITE ADD/REMOVE
-# ===========================
+
+# Thêm/Xóa yêu thích
 @app.route("/favorite/<int:anime_id>")
 def favorite(anime_id):
     if "user_id" not in session:
@@ -194,13 +176,13 @@ def favorite(anime_id):
     return redirect(url_for("detail", anime_id=anime_id))
 
 
-# ===========================
-# FAVORITES PAGE
-# ===========================
+# Yêu thích
 @app.route("/favorites")
 def favorites():
     if "user_id" not in session:
         return redirect(url_for("login"))
+    
+    cf_model.reload()
 
     user_id = session["user_id"]
 
@@ -210,74 +192,18 @@ def favorites():
     fav_ids = df_fav[df_fav["user_id"] == user_id]["anime_id"].tolist()
     favorites = df_anime[df_anime["id"].isin(fav_ids)].to_dict(orient="records")
 
-    recs = cf_model.recommend(user_id, top_k=12)
+    recs = cf_model.recommend(user_id, top_k=10)
 
     return render_template("favorites.html",
                            favorites=favorites,
                            recommendations=recs)
 
 
-# ===========================
-# HELPERS: plot → base64
-# ===========================
-def plot_to_base64():
-    buf = io.BytesIO()
-    plt.savefig(buf, format="png", bbox_inches="tight")
-    buf.seek(0)
-    encoded = base64.b64encode(buf.read()).decode("utf-8")
-    buf.close()
-    plt.close()
-    return encoded
-
-
-# ===========================
-# MODEL EVALUATION
-# ===========================
-def precision_recall_at_k_cf(model, df_fav, k=10):
-    precisions, recalls = [], []
-    users = df_fav["user_id"].unique()
-
-    for u in users:
-        true_items = set(df_fav[df_fav["user_id"] == u]["anime_id"])
-        if not true_items:
-            continue
-
-        recs = {r["id"] for r in model.recommend(u, top_k=k)}
-        tp = len(recs & true_items)
-
-        precisions.append(tp / k)
-        recalls.append(tp / len(true_items))
-
-    return np.mean(precisions), np.mean(recalls)
-
-
-def precision_recall_at_k_cb(cb_model, df_anime, k=10):
-    precisions, recalls = [], []
-    samples = df_anime["id"].sample(min(20, len(df_anime)), random_state=42)
-
-    for aid in samples:
-        genre = df_anime[df_anime["id"] == aid]["genres"].iloc[0]
-        true_items = set(df_anime[df_anime["genres"] == genre]["id"])
-        rec_ids = set(cb_model.recommend(aid, top_k=k))
-
-        if len(true_items) <= 1:
-            continue
-
-        tp = len(rec_ids & true_items)
-        precisions.append(tp / k)
-        recalls.append(tp / len(true_items))
-
-    if not precisions:
-        return 0, 0
-
-    return np.mean(precisions), np.mean(recalls)
-
-
-# ===========================
-# ADMIN DASHBOARD
-# ===========================
+# Admin
 @app.route("/admin")
 def admin_dashboard():
+    cf_model.reload()
+
     df_anime = df
     df_users = pd.read_csv(USER_FILE)
     df_fav = pd.read_csv(FAV_FILE)
@@ -292,47 +218,18 @@ def admin_dashboard():
         all_genres.update([x.strip() for x in g.split(",")])
     total_genres = len(all_genres)
 
-    # ========= CHARTS =========
+    # Biểu đồ
+    score_img = score_distribution(df_anime)
+    genres_img = top_genres(df_anime)
+    fav_img = top_favorites(df_fav)
+    heatmap_img = correlation_heatmap(df_anime)
 
-    # Histogram score
-    plt.figure(figsize=(6,4))
-    plt.hist(df_anime["score"].dropna(), bins=20, edgecolor="black", color="orange")
-    plt.title("Phân bố Score")
-    score_img = plot_to_base64()
-
-    # Bar chart genres
-    genre_count = df_anime["genres"].value_counts().head(10)
-    plt.figure(figsize=(6,4))
-    sns.barplot(x=genre_count.values, y=genre_count.index)
-    plt.title("Top Genres")
-    genres_img = plot_to_base64()
-
-    # Bar chart favorites
-    top_fav = df_fav["anime_id"].value_counts().head(10)
-    plt.figure(figsize=(6,4))
-    sns.barplot(x=top_fav.values, y=top_fav.index)
-    plt.title("Top Favorites")
-    fav_img = plot_to_base64()
-
-    # Heatmap
-    numeric_cols = ["score", "popularity", "favorites"]
-
-    numeric_df = df_anime[numeric_cols].dropna()
-
-    if numeric_df.shape[1] >= 2:
-        plt.figure(figsize=(5, 4))
-        sns.heatmap(numeric_df.corr(), annot=True, cmap="coolwarm")
-        plt.title("Heatmap tương quan (Score – Popularity – Favorites)")
-    else:
-        plt.figure(figsize=(5, 4))
-        plt.text(0.1, 0.5, "Không đủ dữ liệu số để vẽ heatmap", fontsize=14)
-
-    heatmap_img = plot_to_base64()
-
-    # ========= MODEL EVALUATION =========
-
+    # Đánh giá model
     cf_precision, cf_recall = precision_recall_at_k_cf(cf_model, df_fav, k=10)
     cb_precision, cb_recall = precision_recall_at_k_cb(cb_model, df_anime, k=10)
+
+    # COVERAGE
+    cf_cov = coverage(cf_model, len(df_anime))
 
     return render_template(
         "admin.html",
@@ -341,16 +238,22 @@ def admin_dashboard():
         total_fav=total_fav,
         total_genres=total_genres,
 
+        # charts
         score_img=score_img,
         genres_img=genres_img,
         fav_img=fav_img,
         heatmap_img=heatmap_img,
 
+        # CF basic
         cf_precision=cf_precision,
         cf_recall=cf_recall,
 
+        # CBF basic
         cb_precision=cb_precision,
         cb_recall=cb_recall,
+
+        # Coverage
+        cf_cov=cf_cov,
 
         users=df_users.to_dict(orient="records"),
         anime=df_anime.to_dict(orient="records"),
@@ -358,9 +261,7 @@ def admin_dashboard():
     )
 
 
-# ===========================
-# LOGOUT
-# ===========================
+# Đăng xuất
 @app.route("/logout")
 def logout():
     session.clear()

@@ -1,23 +1,26 @@
+import sys
+import os
+
+# Add parent directory to path so imports work
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Set UTF-8 encoding for stdout (fixes emoji issues on Windows)
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+import pandas as pd
 from models.collaborative import CollaborativeFiltering
+from utils.evaluation import precision_recall_at_k_cf, coverage
 
-model = CollaborativeFiltering(
-    anime_path="data/anime_clean.csv",
-    interactions_path="data/interactions.csv"
-)
+df_fav = pd.read_csv('data/favorites.csv')
+df_anime = pd.read_csv('data/anime_clean.csv')
 
-# Fake interactions để test demo
-demo_data = [
-    (1, 10), (1, 22), (1, 33),
-    (2, 10), (2, 44),
-    (3, 10), (3, 22),
-    (4, 22), (4, 33),
-]
+cf = CollaborativeFiltering()   # will load data from default paths
+prec, rec = precision_recall_at_k_cf(cf, df_fav, k=10)
+cov = coverage(cf, total_items=len(df_anime))
 
-for u, a in demo_data:
-    model.add_interaction(user_id=u, anime_id=a)
-
-print(">>> Recommend for user 1:")
-results = model.recommend(1, top_k=5)
-
-for r in results:
-    print(r["id"], r["title"], r["score"])
+print()
+print('Results:')
+print('Precision@10:', prec)
+print('Recall@10:', rec)
+print('Coverage:', cov)

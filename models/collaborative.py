@@ -23,15 +23,31 @@ class CollaborativeFiltering:
 
         if df.empty:
             print("⚠ No interactions yet → CF will return empty results.")
-            self.df_inter = df
+            # delegate to set_interactions to keep logic consistent
+            self.set_interactions(df)
+            return
+
+        # delegate to set_interactions which will add scores and build matrices
+        self.set_interactions(df)
+
+    def set_interactions(self, df):
+        """
+        Set interactions DataFrame directly (in-memory) and rebuild internal matrices.
+        This is useful for evaluation where we want to use a train/test split
+        without writing to disk.
+        """
+        if df is None or df.empty:
+            self.df_inter = pd.DataFrame(columns=["user_id", "anime_id"])
             self.user_item = None
             self.sim_df = None
             return
 
-        # implicit: mỗi tương tác = 1
-        df["score"] = 1
-        self.df_inter = df
+        df = df.copy()
+        # implicit feedback: mỗi tương tác = 1
+        if "score" not in df.columns:
+            df["score"] = 1
 
+        self.df_inter = df
         self.build_user_item_matrix()
         self.compute_item_similarity()
 
@@ -67,10 +83,8 @@ class CollaborativeFiltering:
             columns=item_vectors.index
         )
 
-    # ======================================================
     # 3. Recommend implicit CF (không có rating)
-    # ======================================================
-    def recommend(self, user_id, top_k=10):
+    def recommend(self, user_id, top_k=10, include_liked=False):
         if self.user_item is None or self.sim_df is None:
             return []
 
@@ -89,7 +103,9 @@ class CollaborativeFiltering:
             if aid in self.sim_df.columns:
                 scores += self.sim_df[aid]
 
-        scores = scores.drop(labels=liked, errors="ignore")
+        # Only drop liked items if include_liked is False
+        if not include_liked:
+            scores = scores.drop(labels=liked, errors="ignore")
 
         top_ids = scores.sort_values(ascending=False).head(top_k).index.tolist()
 
