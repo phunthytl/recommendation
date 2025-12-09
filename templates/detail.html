@@ -20,9 +20,26 @@
             {% else %}
                 <a href="/favorite/{{ anime.id }}" class="btn btn-outline-warning">💛 Thêm yêu thích</a>
             {% endif %}
-        {% else %}
-            <a href="/login" class="btn btn-outline-secondary">Đăng nhập để yêu thích</a>
         {% endif %}
+
+        <h4>Đánh giá anime</h4>
+
+        {% if user_rating %}
+            <p>Bạn đã đánh giá: <b>{{ user_rating }}/10</b></p>
+            <a href="/rate/delete/{{ anime.id }}" class="btn btn-danger btn-sm mb-2">Xóa đánh giá</a>
+        {% else %}
+            <p>Bạn chưa đánh giá anime này.</p>
+        {% endif %}
+
+        <div class="rating-buttons">
+            {% for i in range(1, 11) %}
+                <a href="/rate/{{ anime.id }}/{{ i }}"
+                class="rate-btn {% if user_rating == i %}active-rate{% endif %}">
+                    {{ i }}
+                </a>
+            {% endfor %}
+        </div>
+
     </div>
 </div>
 

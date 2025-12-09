@@ -4,7 +4,7 @@
 <h2 class="mb-4">📊 Admin Dashboard – Tổng hợp hệ gợi ý</h2>
 
 <!-- ========================= -->
-<!-- THỐNG KÊ -->
+<!-- THỐNG KÊ CƠ BẢN -->
 <!-- ========================= -->
 <div class="row mb-4">
     <div class="col-md-3">
@@ -30,8 +30,17 @@
 
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>Số Thể Loại</h6>
-            <h3>{{ total_genres }}</h3>
+            <h6>Tổng Đánh Giá (Rating)</h6>
+            <h3>{{ total_rating }}</h3>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card p-3 text-center shadow-sm">
+            <h6>User đã đánh giá</h6>
+            <h3>{{ users_with_rating }}</h3>
         </div>
     </div>
 </div>
@@ -78,13 +87,96 @@
 <hr>
 
 <!-- ========================= -->
-<!-- EVALUATION -->
+<!-- THỐNG KÊ THEO RATING -->
 <!-- ========================= -->
-<h3 class="mb-3">🧠 Đánh giá mô hình</h3>
+<h3 class="mb-3">⭐ Thống kê theo Rating</h3>
 
-<!-- ===== CF BASIC ===== -->
-<h5 class="mt-3">🔷 Collaborative Filtering (CF) – Basic Evaluation</h5>
+<h5 class="mt-3">🔷 Anime được đánh giá nhiều nhất</h5>
 <div class="row mb-4">
+    {% for a in top_rated %}
+    <div class="col-6 col-md-3 col-lg-2">
+        <div class="card anime-card shadow-sm">
+            <img src="{{ a.image }}" class="card-img-top">
+            <div class="card-body text-center">
+                <b>{{ a.title }}</b>
+                <p class="text-muted small">Lượt đánh giá: {{ a.count }}</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<h5 class="mt-3">🔶 Anime có điểm trung bình cao nhất</h5>
+<div class="row mb-4">
+    {% for a in avg_rating %}
+    <div class="col-6 col-md-3 col-lg-2">
+        <div class="card anime-card shadow-sm">
+            <img src="{{ a.image }}" class="card-img-top">
+            <div class="card-body text-center">
+                <b>{{ a.title }}</b>
+                <p class="text-muted small">Điểm TB: {{ a.mean|round(2) }} ({{ a.count }} ratings)</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<hr>
+
+<!-- ========================= -->
+<!-- TRẠNG THÁI MODEL -->
+<!-- ========================= -->
+<h3 class="mb-3">🧠 Trạng thái mô hình CF SVD</h3>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card p-3 text-center shadow-sm">
+            <h6>Model Status</h6>
+            <h4>{{ model_status }}</h4>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card p-3 text-center shadow-sm">
+            <h6>User trong model</h6>
+            <h4>{{ num_cf_users }}</h4>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card p-3 text-center shadow-sm">
+            <h6>Anime trong model</h6>
+            <h4>{{ num_cf_items }}</h4>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card p-3 text-center shadow-sm">
+            <h6>Latent factors</h6>
+            <h4>{{ num_factors }}</h4>
+        </div>
+    </div>
+</div>
+
+<hr>
+
+<h3 class="mb-3">🧮 Đánh giá mô hình Recommender</h3>
+
+<h5 class="mt-3">🔷 Collaborative Filtering (SVD)</h5>
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card p-3 text-center shadow-sm">
+            <h6>RMSE</h6>
+            <h4>{{ rmse|round(3) }}</h4>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card p-3 text-center shadow-sm">
+            <h6>MAE</h6>
+            <h4>{{ mae|round(3) }}</h4>
+        </div>
+    </div>
 
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
@@ -99,20 +191,21 @@
             <h4>{{ cf_recall|round(3) }}</h4>
         </div>
     </div>
+</div>
 
+<div class="row mb-4">
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
             <h6>Coverage</h6>
             <h4>{{ cf_cov|round(3) }}</h4>
         </div>
     </div>
-
 </div>
 
-<!-- ===== CBF BASIC ===== -->
-<h5 class="mt-4">🔶 Content-Based Filtering (CBF) – Basic Evaluation</h5>
-<div class="row mb-4">
+<hr>
 
+<h5 class="mt-4">🔶 Content-Based (TF-IDF)</h5>
+<div class="row mb-4">
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
             <h6>Precision@10</h6>
@@ -127,5 +220,6 @@
         </div>
     </div>
 </div>
+
 
 {% endblock %}

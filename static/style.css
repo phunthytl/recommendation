@@ -44,3 +44,24 @@ body {
 .card-body p {
     min-height: 38px;
 }
+
+.rating-buttons .rate-btn {
+    display: inline-block;
+    padding: 6px 10px;
+    margin: 2px;
+    border-radius: 5px;
+    background: #eee;
+    color: #333;
+    text-decoration: none;
+    border: 1px solid #ccc;
+    font-weight: 500;
+}
+.rating-buttons .rate-btn:hover {
+    background: #ddd;
+}
+.rating-buttons .active-rate {
+    background: #ff9800;
+    color: white;
+    font-weight: bold;
+    border-color: #ff9800;
+}

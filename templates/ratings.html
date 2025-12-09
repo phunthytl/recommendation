@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h3 class="mb-3">⭐ Anime bạn đã đánh giá</h3>
+
+{% if ratings|length == 0 %}
+<div class="alert alert-info">Bạn chưa đánh giá anime nào.</div>
+{% endif %}
+
+<div class="row">
+    {% for a in ratings %}
+    <div class="col-6 col-md-3 col-lg-2">
+        <div class="card anime-card">
+            <img src="{{ a.image }}" class="card-img-top">
+
+            <div class="card-body text-center">
+                <a href="/anime/{{ a.id }}" class="anime-title-link">{{ a.title }}</a>
+
+                <p class="text-muted small">{{ a.genres }}</p>
+
+                <!-- ⭐ Hiển thị rating -->
+                <p class="mb-1">
+                    <span class="badge bg-warning text-dark">
+                        ⭐ {{ a.rating }}/10
+                    </span>
+                </p>
+
+                <!-- ❌ Nút xóa đánh giá -->
+                <a href="/rate/delete/{{ a.id }}" class="btn btn-sm btn-outline-danger">
+                    Xóa đánh giá
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<hr>
+
+<h3 class="mb-3">✨ Gợi ý dành riêng cho bạn (Collaborative Filtering)</h3>
+
+<div class="row">
+    {% if recommendations and recommendations|length > 0 %}
+        {% for a in recommendations %}
+        <div class="col-6 col-md-3 col-lg-2">
+            <div class="card anime-card">
+                <img src="{{ a.image }}" class="card-img-top">
+                <div class="card-body text-center">
+                    <a href="/anime/{{ a.id }}" class="anime-title-link">{{ a.title }}</a>
+                    <p class="text-muted small">{{ a.genres }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-muted">Chưa có đủ dữ liệu để gợi ý. Hãy đánh giá thêm anime!</p>
+    {% endif %}
+</div>
+
+
+{% endblock %}

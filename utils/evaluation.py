@@ -1,114 +1,117 @@
 import numpy as np
+import pandas as pd
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics.pairwise import cosine_similarity
 
 
-# ======================================================================
-# 1) CF — Precision@K & Recall@K (dựa trên favorites.csv)
-# ======================================================================
-def precision_recall_at_k_cf(cf_model, df_fav, k=10):
-    """
-    Evaluate CF using a simpler approach:
-    - Train model on ALL data (to get stable similarity matrix)
-    - For each user, hold out 20% of interactions
-    - Compute recommendations based on FULL train matrix but only considering held-out test set for TP
-    - This avoids the issue of sparse similarity matrices from small train sets
-    """
+# ============================================================
+# 1) RMSE & MAE for CF model-based (SVD)
+# ============================================================
+def evaluate_cf_rmse_mae(cf_model, df_ratings, test_ratio=0.2):
+    df = df_ratings.copy()
+    df = df.sample(frac=1, random_state=42)
 
-    # Train on all data
-    cf_model.set_interactions(df_fav)
-    
+    cut = int(len(df) * (1 - test_ratio))
+    train_df = df.iloc[:cut]
+    test_df  = df.iloc[cut:]
+
+    # Auto adjust latent factors
+    num_items = train_df["anime_id"].nunique()
+    cf_model.n_factors = max(2, min(cf_model.n_factors, num_items))
+
+    cf_model.fit(train_df)
+
+    preds = []
+    trues = []
+
+    for _, row in test_df.iterrows():
+        uid = row["user_id"]
+        aid = row["anime_id"]
+
+        true = float(row["rating"])
+        pred = cf_model.predict(uid, aid)
+
+        preds.append(pred)
+        trues.append(true)
+
+    mse  = mean_squared_error(trues, preds)
+    rmse = np.sqrt(mse)
+    mae  = mean_absolute_error(trues, preds)
+
+    return rmse, mae
+
+
+
+# ============================================================
+# 2) Precision@K & Recall@K for CF SVD
+# ============================================================
+def precision_recall_at_k(cf_model, df_ratings, k=10):
+    df = df_ratings.copy()
+    users = df["user_id"].unique()
+
     precisions = []
     recalls = []
 
-    user_count = 0
-    valid_users = 0
-    total_test_items = 0
-    total_hits = 0
+    for user in users:
+        user_rows = df[df["user_id"] == user]
 
-    np.random.seed(42)
-
-    for user in df_fav["user_id"].unique():
-        user_count += 1
-        user_rows = df_fav[df_fav["user_id"] == user].copy()
-        
         if len(user_rows) < 5:
             continue
 
-        valid_users += 1
+        test = user_rows.sample(max(1, len(user_rows)//5), random_state=42)
+        train = user_rows.drop(test.index)
 
-        # Split 80-20
-        n_test = max(1, len(user_rows) // 5)
-        test_indices = np.random.choice(user_rows.index, size=n_test, replace=False)
-        test_df = df_fav.loc[test_indices]
-        
-        # Get recommendations using the FULL model (trained on all data)
-        recs = cf_model.recommend(user, top_k=k, include_liked=True)
-        rec_items = {r["id"] for r in recs}
+        # Auto adjust latent factors theo số item trong train
+        num_items = train["anime_id"].nunique()
+        cf_model.n_factors = max(2, min(cf_model.n_factors, num_items))
 
-        # Count how many test items appear in recommendations
-        test_items = set(test_df["anime_id"])
-        tp = len(test_items & rec_items)
+        cf_model.fit(train)
+
+        all_items = df["anime_id"].unique().tolist()
+        recs = cf_model.recommend(user, all_items, train, top_k=k)
+        rec_ids = {aid for aid, _ in recs}
+
+        true_items = set(test["anime_id"])
+        tp = len(rec_ids & true_items)
 
         precisions.append(tp / k)
-        recalls.append(tp / len(test_items))
-        
-        total_test_items += len(test_items)
-        total_hits += tp
+        recalls.append(tp / len(true_items))
 
-    print(f"[CF Eval] Total users: {user_count}, Valid for eval (>=5 interactions): {valid_users}")
-    print(f"[CF Eval] Total test items: {total_test_items}, Total hits: {total_hits}")
-
-    if len(precisions) == 0:
+    if not precisions:
         return 0, 0
 
     return np.mean(precisions), np.mean(recalls)
 
 
 
-# ======================================================================
-# 2) CF — Coverage (theo lý thuyết trong recommender systems)
-# ======================================================================
+# ============================================================
+# 3) Coverage = số item có thể recommend
+# ============================================================
 def coverage(cf_model, total_items):
-    """
-    Coverage = số lượng item có thể được recommend / tổng số item
-    """
-
-    if cf_model.sim_df is None or cf_model.sim_df.empty:
-        return 0
-
-    return len(cf_model.sim_df.index) / total_items
+    return len(cf_model.item_id_to_idx) / total_items if total_items else 0
 
 
 
-# ======================================================================
-# 3) CBF — Precision@K & Recall@K (đánh giá dựa trên genre)
-# ======================================================================
-def precision_recall_at_k_cb(cb_model, df_anime, k=10):
-    """
-    Đánh giá Content-Based Filtering bằng cách so khớp genre:
-    Anime cùng thể loại được coi là ground truth.
-    """
-
+# ============================================================
+# 4) Content-Based evaluation (genre match)
+# ============================================================
+def evaluate_content_based(cb_model, df_anime, k=10):
     precisions = []
     recalls = []
 
-    # lấy mẫu ngẫu nhiên 30 anime để đánh giá
-    sample = df_anime.sample(min(30, len(df_anime)), random_state=42)
+    sample = df_anime.sample(40, random_state=42)
 
     for _, row in sample.iterrows():
         aid = row["id"]
         genre = row["genres"]
 
-        # ground truth: toàn bộ anime cùng genre
         true_items = set(df_anime[df_anime["genres"] == genre]["id"])
-
-        rec_ids = set(cb_model.recommend(aid, top_k=k))
+        rec_pairs = cb_model.recommend_content(aid, top_k=k)
+        rec_ids = set([p["id"] for p in rec_pairs])
 
         tp = len(true_items & rec_ids)
 
         precisions.append(tp / k)
         recalls.append(tp / max(len(true_items), 1))
-
-    if len(precisions) == 0:
-        return 0, 0
 
     return np.mean(precisions), np.mean(recalls)
