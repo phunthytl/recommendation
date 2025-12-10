@@ -14,19 +14,15 @@
         <p><b>Số tập:</b> {{ anime.episodes }}</p>
         <p><b>Trạng thái:</b> {{ anime.status }}</p>
         <p><b>Lượt yêu thích:</b> {{ anime.favorites }}</p>
-        {% if session.username %}
-            {% if is_favorite %}
-                <a href="/favorite/{{ anime.id }}" class="btn btn-warning">💛 Đã yêu thích</a>
-            {% else %}
-                <a href="/favorite/{{ anime.id }}" class="btn btn-outline-warning">💛 Thêm yêu thích</a>
-            {% endif %}
-        {% endif %}
 
-        <h4>Đánh giá anime</h4>
+        <h4>Đánh giá anime:
+        {% if user_rating %}
+            <span class="ms-2"><b>{{ user_rating }}/10</b></span>
+        {% endif %}
+        </h4>
 
         {% if user_rating %}
-            <p>Bạn đã đánh giá: <b>{{ user_rating }}/10</b></p>
-            <a href="/rate/delete/{{ anime.id }}" class="btn btn-danger btn-sm mb-2">Xóa đánh giá</a>
+            <a href="/rate/delete/{{ anime.id }}" class="btn btn-danger btn-sm mb-2"><i class="fas fa-trash-alt me-1"></i>Xóa đánh giá</a>
         {% else %}
             <p>Bạn chưa đánh giá anime này.</p>
         {% endif %}
@@ -49,16 +45,19 @@
 
 <hr>
 
-<h3>Gợi ý anime tương tự</h3>
+<h3>Gợi ý anime tương tự (Content-Based Filtering)</h3>
 
 <div class="row g-4 mt-2">
     {% for a in recommendations %}
     <div class="col-6 col-md-3 col-lg-2">
-        <div class="card anime-card">
+        <div class="card anime-card h-100">
             <img src="{{ a.image }}" class="card-img-top">
-            <div class="card-body text-center">
+            <div class="card-body text-center d-flex flex-column">
                 <a href="/anime/{{ a.id }}" class="anime-title-link">{{ a.title }}</a>
-                <p class="text-muted small">{{ a.genres }}</p>
+                <p class="text-muted small flex-grow-1">{{ a.genres }}</p>
+                {% if a.score %}
+                    <p class="badge bg-info"><i class="fas fa-chart-pie me-1"></i>Tương đồng: {{ "%.1f"|format(a.score * 100) }}%</p>
+                {% endif %}
             </div>
         </div>
     </div>

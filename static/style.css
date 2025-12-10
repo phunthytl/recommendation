@@ -65,3 +65,16 @@ body {
     font-weight: bold;
     border-color: #ff9800;
 }
+
+/* SIMILARITY & SCORE BADGES */
+.card-body .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 4px;
+    font-size: 12px;
+    padding: 6px 12px;
+    font-weight: 600;
+    width: 100%;
+    text-align: center;
+}

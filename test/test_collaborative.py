@@ -1,26 +1,26 @@
-import sys
-import os
-
-# Add parent directory to path so imports work
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Set UTF-8 encoding for stdout (fixes emoji issues on Windows)
-import io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-
 import pandas as pd
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from models.collaborative import CollaborativeFiltering
-from utils.evaluation import precision_recall_at_k_cf, coverage
+from utils.evaluation import (
+    evaluate_cf_rmse_mae,
+    precision_recall_at_k,
 
-df_fav = pd.read_csv('data/favorites.csv')
-df_anime = pd.read_csv('data/anime_clean.csv')
+)
 
-cf = CollaborativeFiltering()   # will load data from default paths
-prec, rec = precision_recall_at_k_cf(cf, df_fav, k=10)
-cov = coverage(cf, total_items=len(df_anime))
+print("\n🚀 Loading ratings.csv...\n")
+df = pd.read_csv("data/ratings.csv")
 
-print()
-print('Results:')
-print('Precision@10:', prec)
-print('Recall@10:', rec)
-print('Coverage:', cov)
+cf = CollaborativeFiltering(n_factors=15)
+
+print("🔧 Evaluating RMSE / MAE ...")
+rmse, mae = evaluate_cf_rmse_mae(cf, df)
+print(f"📌 RMSE : {rmse:.4f}")
+print(f"📌 MAE  : {mae:.4f}")
+
+print("\n🎯 Evaluating Precision@10 / Recall@10 ...")
+p10, r10 = precision_recall_at_k(cf, df, k=10)
+print(f"📌 Precision@10 : {p10:.4f}")
+print(f"📌 Recall@10    : {r10:.4f}")
+
+print("\n🎉 DONE!")

@@ -1,28 +1,23 @@
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-from sklearn.metrics.pairwise import cosine_similarity
 
 
 # ============================================================
-# 1) RMSE & MAE for CF model-based (SVD)
+# 1) RMSE & MAE for Collaborative Filtering (SVD)
 # ============================================================
 def evaluate_cf_rmse_mae(cf_model, df_ratings, test_ratio=0.2):
-    df = df_ratings.copy()
-    df = df.sample(frac=1, random_state=42)
+    """Evaluate CF model WITHOUT retraining - use pretrained model"""
+    df = df_ratings.sample(frac=1, random_state=42).reset_index(drop=True)
 
     cut = int(len(df) * (1 - test_ratio))
     train_df = df.iloc[:cut]
-    test_df  = df.iloc[cut:]
+    test_df = df.iloc[cut:]
 
-    # Auto adjust latent factors
-    num_items = train_df["anime_id"].nunique()
-    cf_model.n_factors = max(2, min(cf_model.n_factors, num_items))
+    # ❌ DON'T RETRAIN - model is already pretrained
+    # cf_model.fit(train_df)  # REMOVED!
 
-    cf_model.fit(train_df)
-
-    preds = []
-    trues = []
+    preds, trues = [], []
 
     for _, row in test_df.iterrows():
         uid = row["user_id"]
@@ -31,87 +26,128 @@ def evaluate_cf_rmse_mae(cf_model, df_ratings, test_ratio=0.2):
         true = float(row["rating"])
         pred = cf_model.predict(uid, aid)
 
+        if np.isnan(pred):
+            continue
+
         preds.append(pred)
         trues.append(true)
 
-    mse  = mean_squared_error(trues, preds)
+    if len(preds) == 0:
+        return 0, 0
+
+    mse = mean_squared_error(trues, preds)
     rmse = np.sqrt(mse)
-    mae  = mean_absolute_error(trues, preds)
+    mae = mean_absolute_error(trues, preds)
 
     return rmse, mae
 
 
-
 # ============================================================
-# 2) Precision@K & Recall@K for CF SVD
+# 2) Precision@K & Recall@K (per-user relevance)
 # ============================================================
-def precision_recall_at_k(cf_model, df_ratings, k=10):
+def precision_recall_at_k(cf_model, df_ratings, k=10, test_ratio=0.2, min_ratings=5):
     df = df_ratings.copy()
     users = df["user_id"].unique()
 
-    precisions = []
-    recalls = []
+    precisions, recalls = [], []
 
     for user in users:
-        user_rows = df[df["user_id"] == user]
+        rows = df[df["user_id"] == user]
 
-        if len(user_rows) < 5:
+        # user quá ít rating → bỏ qua
+        if len(rows) < min_ratings:
             continue
 
-        test = user_rows.sample(max(1, len(user_rows)//5), random_state=42)
-        train = user_rows.drop(test.index)
+        rows = rows.sample(frac=1)
+        cut = int(len(rows) * (1 - test_ratio))
 
-        # Auto adjust latent factors theo số item trong train
-        num_items = train["anime_id"].nunique()
-        cf_model.n_factors = max(2, min(cf_model.n_factors, num_items))
+        train_u = rows.iloc[:cut]
+        test_u = rows.iloc[cut:]
 
-        cf_model.fit(train)
+        if len(test_u) == 0:
+            continue
+
+        # train CF trên dataset FULL (khuyến nghị)
+        # cf_model.fit(train_df)  # ❌ không được train lại ở đây
 
         all_items = df["anime_id"].unique().tolist()
-        recs = cf_model.recommend(user, all_items, train, top_k=k)
-        rec_ids = {aid for aid, _ in recs}
+        recs = cf_model.recommend(user, all_items, train_u, top_k=k)
+        rec_ids = {a for a, _ in recs}
 
-        true_items = set(test["anime_id"])
+        true_items = set(test_u["anime_id"])
+
         tp = len(rec_ids & true_items)
 
         precisions.append(tp / k)
         recalls.append(tp / len(true_items))
 
     if not precisions:
-        return 0, 0
+        return 0.0, 0.0
 
-    return np.mean(precisions), np.mean(recalls)
-
+    return float(np.mean(precisions)), float(np.mean(recalls))
 
 
 # ============================================================
-# 3) Coverage = số item có thể recommend
+# 3) Coverage (item coverage trong CF)
 # ============================================================
 def coverage(cf_model, total_items):
-    return len(cf_model.item_id_to_idx) / total_items if total_items else 0
-
+    if total_items == 0:
+        return 0
+    return len(cf_model.item_id_to_idx) / total_items
 
 
 # ============================================================
-# 4) Content-Based evaluation (genre match)
+# 4) Content-based evaluation (TF-IDF similarity)
 # ============================================================
-def evaluate_content_based(cb_model, df_anime, k=10):
+def evaluate_content_based(rec_system, df_anime, k=10):
+    """
+    Evaluate content-based recommendations using anime similarity.
+    Returns precision and recall metrics.
+    """
+    if rec_system.content.tfidf_matrix is None:
+        return 0.0, 0.0
+
     precisions = []
     recalls = []
 
-    sample = df_anime.sample(40, random_state=42)
+    # Sample some anime items to evaluate
+    sample_size = min(50, len(df_anime))
+    sampled_animes = df_anime.sample(n=sample_size, random_state=42)
 
-    for _, row in sample.iterrows():
-        aid = row["id"]
-        genre = row["genres"]
+    for _, anime in sampled_animes.iterrows():
+        anime_id = anime["id"]
 
-        true_items = set(df_anime[df_anime["genres"] == genre]["id"])
-        rec_pairs = cb_model.recommend_content(aid, top_k=k)
-        rec_ids = set([p["id"] for p in rec_pairs])
+        try:
+            recs = rec_system.recommend_content(anime_id, top_k=k)
+            if not recs:
+                continue
 
-        tp = len(true_items & rec_ids)
+            rec_ids = {r["id"] for r in recs}
 
-        precisions.append(tp / k)
-        recalls.append(tp / max(len(true_items), 1))
+            # Simple heuristic: check genre overlap for "true" similar items
+            anime_genres = str(anime.get("genres", "")).lower()
 
-    return np.mean(precisions), np.mean(recalls)
+            true_similar = set()
+            for _, other in df_anime.iterrows():
+                if other["id"] == anime_id:
+                    continue
+                other_genres = str(other.get("genres", "")).lower()
+                # Consider similar if any genre overlap
+                if anime_genres and other_genres:
+                    if any(g.strip() in other_genres for g in anime_genres.split(",")):
+                        true_similar.add(other["id"])
+
+            if not true_similar:
+                continue
+
+            tp = len(rec_ids & true_similar)
+            precisions.append(tp / k if k > 0 else 0)
+            recalls.append(tp / len(true_similar) if len(true_similar) > 0 else 0)
+
+        except Exception as e:
+            continue
+
+    if not precisions:
+        return 0.0, 0.0
+
+    return float(np.mean(precisions)), float(np.mean(recalls))

@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<h2 class="mb-4">📊 Admin Dashboard – Tổng hợp hệ gợi ý</h2>
+<h2 class="mb-4"><i class="fas fa-chart-bar me-2" style="color: #17a2b8;"></i>Admin Dashboard – Tổng hợp hệ gợi ý</h2>
 
 <!-- ========================= -->
 <!-- THỐNG KÊ CƠ BẢN -->
@@ -9,37 +9,28 @@
 <div class="row mb-4">
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>Tổng Anime</h6>
+            <h6><i class="fas fa-film me-2"></i>Tổng Anime</h6>
             <h3>{{ total_items }}</h3>
         </div>
     </div>
 
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>Tổng User</h6>
+            <h6><i class="fas fa-users me-2"></i>Tổng User</h6>
             <h3>{{ total_users }}</h3>
         </div>
     </div>
 
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>Lượt Yêu Thích</h6>
-            <h3>{{ total_fav }}</h3>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card p-3 text-center shadow-sm">
-            <h6>Tổng Đánh Giá (Rating)</h6>
+            <h6><i class="fas fa-star me-2"></i>Tổng Đánh Giá (Rating)</h6>
             <h3>{{ total_rating }}</h3>
         </div>
     </div>
-</div>
 
-<div class="row mb-4">
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>User đã đánh giá</h6>
+            <h6><i class="fas fa-user-check me-2"></i>User đã đánh giá</h6>
             <h3>{{ users_with_rating }}</h3>
         </div>
     </div>
@@ -50,75 +41,65 @@
 <!-- ========================= -->
 <!-- BIỂU ĐỒ -->
 <!-- ========================= -->
-<h3 class="mb-3">📈 Trực quan dữ liệu</h3>
+<h3 class="mb-3"><i class="fas fa-chart-line me-2" style="color: #28a745;"></i>Trực quan dữ liệu</h3>
 
-<div class="row mb-4">
-
-    <div class="col-md-3 mb-3">
-        <div class="card p-2 shadow-sm">
-            <h6 class="text-center">Phân bố Score</h6>
-            <img src="data:image/png;base64,{{ score_img }}" class="img-fluid rounded">
-        </div>
+<!-- Plotly Tabs for Charts -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-light">
+        <ul class="nav nav-tabs card-header-tabs" id="chartTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="score-tab" data-bs-toggle="tab" data-bs-target="#scoreChart" type="button" role="tab">
+                    <i class="fas fa-chart-bar me-2"></i>Phân bố Score
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="rating-tab" data-bs-toggle="tab" data-bs-target="#ratingChart" type="button" role="tab">
+                    <i class="fas fa-star me-2"></i>Phân bố Rating
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="genres-tab" data-bs-toggle="tab" data-bs-target="#genresChart" type="button" role="tab">
+                    <i class="fas fa-tags me-2"></i>Top Genres
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="heatmap-tab" data-bs-toggle="tab" data-bs-target="#heatmapChart" type="button" role="tab">
+                    <i class="fas fa-fire me-2"></i>Heatmap
+                </button>
+            </li>
+        </ul>
     </div>
-
-    <div class="col-md-3 mb-3">
-        <div class="card p-2 shadow-sm">
-            <h6 class="text-center">Top Genres</h6>
-            <img src="data:image/png;base64,{{ genres_img }}" class="img-fluid rounded">
-        </div>
-    </div>
-
-    <div class="col-md-3 mb-3">
-        <div class="card p-2 shadow-sm">
-            <h6 class="text-center">Top Favorites</h6>
-            <img src="data:image/png;base64,{{ fav_img }}" class="img-fluid rounded">
-        </div>
-    </div>
-
-    <div class="col-md-3 mb-3">
-        <div class="card p-2 shadow-sm">
-            <h6 class="text-center">Heatmap tương quan</h6>
-            <img src="data:image/png;base64,{{ heatmap_img }}" class="img-fluid rounded">
-        </div>
-    </div>
-
-</div>
-
-<hr>
-
-<!-- ========================= -->
-<!-- THỐNG KÊ THEO RATING -->
-<!-- ========================= -->
-<h3 class="mb-3">⭐ Thống kê theo Rating</h3>
-
-<h5 class="mt-3">🔷 Anime được đánh giá nhiều nhất</h5>
-<div class="row mb-4">
-    {% for a in top_rated %}
-    <div class="col-6 col-md-3 col-lg-2">
-        <div class="card anime-card shadow-sm">
-            <img src="{{ a.image }}" class="card-img-top">
-            <div class="card-body text-center">
-                <b>{{ a.title }}</b>
-                <p class="text-muted small">Lượt đánh giá: {{ a.count }}</p>
+    
+    <div class="card-body">
+        <div class="tab-content" id="chartTabContent">
+            <!-- Score Distribution Tab -->
+            <div class="tab-pane fade show active" id="scoreChart" role="tabpanel">
+                {{ score_img|safe }}
+            </div>
+            
+            <!-- Rating Distribution Tab -->
+            <div class="tab-pane fade" id="ratingChart" role="tabpanel">
+                {{ rating_dist_img|safe }}
+            </div>
+            
+            <!-- Genres Tab -->
+            <div class="tab-pane fade" id="genresChart" role="tabpanel">
+                {{ genres_img|safe }}
+            </div>
+            
+            <!-- Heatmap Tab -->
+            <div class="tab-pane fade" id="heatmapChart" role="tabpanel">
+                {{ heatmap_img|safe }}
             </div>
         </div>
     </div>
-    {% endfor %}
 </div>
 
-<h5 class="mt-3">🔶 Anime có điểm trung bình cao nhất</h5>
-<div class="row mb-4">
-    {% for a in avg_rating %}
-    <div class="col-6 col-md-3 col-lg-2">
-        <div class="card anime-card shadow-sm">
-            <img src="{{ a.image }}" class="card-img-top">
-            <div class="card-body text-center">
-                <b>{{ a.title }}</b>
-                <p class="text-muted small">Điểm TB: {{ a.mean|round(2) }} ({{ a.count }} ratings)</p>
-            </div>
-        </div>
+<!-- Top Rated Chart (Full Width) -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        {{ top_rated_count_img|safe }}
     </div>
-    {% endfor %}
 </div>
 
 <hr>
@@ -126,33 +107,33 @@
 <!-- ========================= -->
 <!-- TRẠNG THÁI MODEL -->
 <!-- ========================= -->
-<h3 class="mb-3">🧠 Trạng thái mô hình CF SVD</h3>
+<h3 class="mb-3"><i class="fas fa-brain me-2" style="color: #e83e8c;"></i>Trạng thái mô hình CF SVD</h3>
 
 <div class="row mb-4">
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>Model Status</h6>
+            <h6><i class="fas fa-check-circle me-2"></i>Model Status</h6>
             <h4>{{ model_status }}</h4>
         </div>
     </div>
 
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>User trong model</h6>
+            <h6><i class="fas fa-user me-2"></i>User trong model</h6>
             <h4>{{ num_cf_users }}</h4>
         </div>
     </div>
 
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>Anime trong model</h6>
+            <h6><i class="fas fa-images me-2"></i>Anime trong model</h6>
             <h4>{{ num_cf_items }}</h4>
         </div>
     </div>
 
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>Latent factors</h6>
+            <h6><i class="fas fa-sliders-h me-2"></i>Latent factors</h6>
             <h4>{{ num_factors }}</h4>
         </div>
     </div>
@@ -160,34 +141,34 @@
 
 <hr>
 
-<h3 class="mb-3">🧮 Đánh giá mô hình Recommender</h3>
+<h3 class="mb-3"><i class="fas fa-chart-area me-2" style="color: #20c997;"></i>Đánh giá mô hình Recommender</h3>
 
-<h5 class="mt-3">🔷 Collaborative Filtering (SVD)</h5>
+<h5 class="mt-3"><i class="fas fa-diamond me-2" style="color: #6f42c1;"></i>Collaborative Filtering (SVD)</h5>
 <div class="row mb-4">
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>RMSE</h6>
+            <h6><i class="fas fa-calculator me-2"></i>RMSE</h6>
             <h4>{{ rmse|round(3) }}</h4>
         </div>
     </div>
 
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>MAE</h6>
+            <h6><i class="fas fa-calculator me-2"></i>MAE</h6>
             <h4>{{ mae|round(3) }}</h4>
         </div>
     </div>
 
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>Precision@10</h6>
+            <h6><i class="fas fa-bullseye me-2"></i>Precision@10</h6>
             <h4>{{ cf_precision|round(3) }}</h4>
         </div>
     </div>
 
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>Recall@10</h6>
+            <h6><i class="fas fa-crosshairs me-2"></i>Recall@10</h6>
             <h4>{{ cf_recall|round(3) }}</h4>
         </div>
     </div>
@@ -196,7 +177,7 @@
 <div class="row mb-4">
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>Coverage</h6>
+            <h6><i class="fas fa-expand me-2"></i>Coverage</h6>
             <h4>{{ cf_cov|round(3) }}</h4>
         </div>
     </div>
@@ -204,22 +185,21 @@
 
 <hr>
 
-<h5 class="mt-4">🔶 Content-Based (TF-IDF)</h5>
+<h5 class="mt-4"><i class="fas fa-gem me-2" style="color: #fd7e14;"></i>Content-Based (TF-IDF)</h5>
 <div class="row mb-4">
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>Precision@10</h6>
+            <h6><i class="fas fa-bullseye me-2"></i>Precision@10</h6>
             <h4>{{ cb_precision|round(3) }}</h4>
         </div>
     </div>
 
     <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
-            <h6>Recall@10</h6>
+            <h6><i class="fas fa-crosshairs me-2"></i>Recall@10</h6>
             <h4>{{ cb_recall|round(3) }}</h4>
         </div>
     </div>
 </div>
-
 
 {% endblock %}

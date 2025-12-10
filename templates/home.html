@@ -1,24 +1,24 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<h2 class="mb-4">🔥 Danh sách Anime</h2>
+<h2 class="mb-4"><i class="fas fa-fire me-2" style="color: #ff6b35;"></i>Danh sách Anime</h2>
 
 <div class="row g-4">
     {% for a in animes %}
     <div class="col-6 col-md-3 col-lg-2">
-        <div class="card anime-card">
+        <div class="card anime-card h-100">
             <img src="{{ a.image }}" class="card-img-top">
-            <div class="card-body text-center">
+            <div class="card-body text-center d-flex flex-column">
                 <a href="/anime/{{ a.id }}" class="anime-title-link">{{ a.title }}</a>
-                <p class="text-muted small">{{ a.genres }}</p>
+                <p class="text-muted small flex-grow-1">{{ a.genres }}</p>
             </div>
         </div>
     </div>
     {% endfor %}
 </div>
 
-<nav aria-label="Anime pages">
-    <ul class="pagination justify-content-center">
+<nav aria-label="Anime pages" class="mt-5">
+    <ul class="pagination justify-content-center gap-2">
 
         <!-- Prev -->
         <li class="page-item {% if not has_prev %}disabled{% endif %}">
