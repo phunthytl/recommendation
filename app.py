@@ -1,6 +1,3 @@
-# ===========================
-# IMPORTS
-# ===========================
 import os
 import json
 import pandas as pd
@@ -36,15 +33,12 @@ TOP_K = 10
 CHARTS_CACHE_FILE = ".charts_cache.json"
 EVAL_CACHE_FILE = ".eval_cache.json"
 
-# ===========================
+
 # LOAD DATA
-# ===========================
 df = pd.read_csv(DATA_PATH)
 
 
-# ===========================
 # INITIALIZE RECOMMENDER SYSTEM
-# ===========================
 rec_system = RecommenderSystem(
     anime_path=DATA_PATH,
     rating_path=RATING_FILE,
@@ -59,25 +53,21 @@ except Exception as e:
     print(f"⚠️  Warning: Could not load recommender models: {e}")
 
 
-# ===========================
 # ENSURE DATA FILES EXIST
-# ===========================
 if not os.path.exists(USER_FILE):
     pd.DataFrame(columns=["user_id", "username", "password"]).to_csv(
         USER_FILE, index=False
     )
-    print(f"✅ Created {USER_FILE}")
+    print(f"Created {USER_FILE}")
 
 if not os.path.exists(RATING_FILE):
     pd.DataFrame(columns=["user_id", "anime_id", "rating"]).to_csv(
         RATING_FILE, index=False
     )
-    print(f"✅ Created {RATING_FILE}")
+    print(f"Created {RATING_FILE}")
 
 
-# ===========================
 # UTILITY FUNCTIONS
-# ===========================
 def get_pagination(page, total_pages):
     """Generate pagination list for navigation."""
     pagination = []
@@ -103,40 +93,22 @@ def get_file_hash(filepath):
 
 
 def get_charts_from_cache():
-    """Load cached charts from file if data hasn't changed."""
-    if not os.path.exists(CHARTS_CACHE_FILE):
-        return None
-    
-    try:
-        with open(CHARTS_CACHE_FILE, 'r') as f:
-            cache = json.load(f)
-        
-        # Check if source data files have changed
-        anime_hash = get_file_hash(DATA_PATH)
-        rating_hash = get_file_hash(RATING_FILE)
-        
-        if (cache.get('anime_hash') == anime_hash and 
-            cache.get('rating_hash') == rating_hash):
+    if os.path.exists(CHARTS_CACHE_FILE):
+        try:
+            with open(CHARTS_CACHE_FILE, 'r') as f:
+                cache = json.load(f)
             return cache.get('charts')
-    except:
-        pass
-    
+        except:
+            return None
     return None
 
 
 def save_charts_to_cache(charts):
-    """Save generated charts to cache file."""
     try:
-        anime_hash = get_file_hash(DATA_PATH)
-        rating_hash = get_file_hash(RATING_FILE)
-        
         cache = {
             'charts': charts,
-            'anime_hash': anime_hash,
-            'rating_hash': rating_hash,
             'timestamp': datetime.now().isoformat()
         }
-        
         with open(CHARTS_CACHE_FILE, 'w') as f:
             json.dump(cache, f)
     except:
@@ -144,39 +116,27 @@ def save_charts_to_cache(charts):
 
 
 def get_eval_from_cache():
-    """Load cached evaluation metrics if data hasn't changed."""
-    if not os.path.exists(EVAL_CACHE_FILE):
-        return None
-    
-    try:
-        with open(EVAL_CACHE_FILE, 'r') as f:
-            cache = json.load(f)
-        
-        rating_hash = get_file_hash(RATING_FILE)
-        
-        if cache.get('rating_hash') == rating_hash:
+    if os.path.exists(EVAL_CACHE_FILE):
+        try:
+            with open(EVAL_CACHE_FILE, 'r') as f:
+                cache = json.load(f)
             return cache.get('metrics')
-    except:
-        pass
-    
+        except:
+            return None
     return None
 
 
 def save_eval_to_cache(metrics):
-    """Save evaluation metrics to cache file."""
     try:
-        rating_hash = get_file_hash(RATING_FILE)
-        
         cache = {
             'metrics': metrics,
-            'rating_hash': rating_hash,
             'timestamp': datetime.now().isoformat()
         }
-        
         with open(EVAL_CACHE_FILE, 'w') as f:
             json.dump(cache, f)
     except:
         pass
+
 
 
 @app.route("/")
@@ -486,7 +446,7 @@ def admin_dashboard():
         else:
             rmse, mae = 0, 0
             cf_precision, cf_recall = 0, 0
-            cf_cov = 0
+            cf_cov = 0  
 
         cb_precision, cb_recall = evaluate_content_based(rec_system, df, k=10)
         
