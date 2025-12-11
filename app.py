@@ -547,6 +547,10 @@ def admin_dashboard():
     )
 
 
+@app.route("/intro")
+def intro():
+    return render_template("intro.html")
+
 # ===========================
 # MAIN
 # ===========================

@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <h1 class="mb-4"><i class="fas fa-book me-2"></i>Hướng dẫn sử dụng</h1>
+
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Anime Recommendation</h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    <strong>Anime Recommendation</strong> là một ứng dụng web giúp bạn khám phá những bộ anime phù hợp với sở thích của mình.
+                    Ứng dụng sử dụng hai thuật toán gợi ý:
+                </p>
+                <ul>
+                    <li><strong>Content-Based Filtering (CBF)</strong> - Gợi ý dựa trên các đặc trưng của anime (thể loại, nội dung)</li>
+                    <li><strong>Collaborative Filtering (CF)</strong> - Gợi ý dựa trên đánh giá của những người dùng tương tự</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Các bước sử dụng</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h6 class="fw-bold">1. <i class="fas fa-user-plus me-1"></i>Đăng ký tài khoản</h6>
+                    <p>Nhấn nút <strong>Đăng ký</strong> ở góc trên phải. Nhập tên người dùng và mật khẩu của bạn.</p>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="fw-bold">2. <i class="fas fa-sign-in-alt me-1"></i>Đăng nhập</h6>
+                    <p>Nhấn nút <strong>Đăng nhập</strong> và nhập thông tin tài khoản.</p>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="fw-bold">3. <i class="fas fa-star me-1"></i>Đánh giá anime</h6>
+                    <p>
+                        Duyệt danh sách anime trên <strong>Trang chủ</strong>. Nhấn vào bất kỳ bộ anime nào để xem chi tiết.
+                        Trên trang chi tiết, nhấn một trong các nút số từ 1-10 điểm để đánh giá anime.
+                        (Tại trang này, bạn cũng có thể xem các anime tương tự được đề xuất dựa trên anime hiện tại)
+                    </p>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="fw-bold">4. <i class="fas fa-lightbulb me-1"></i>Nhận gợi ý</h6>
+                    <p>
+                        Sau khi đánh giá vài bộ anime, nhấn nút <strong>Đánh giá</strong> ở header để xem những anime được gợi ý dành riêng cho bạn.
+                        Hệ thống sẽ tính toán và hiển thị danh sách anime mà bạn có thể yêu thích.
+                    </p>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="fw-bold">5. <i class="fas fa-cog me-1"></i>Xem thống kê (Admin)</h6>
+                    <p>
+                        Nhấn nút <strong>Quản lý</strong> để truy cập dashboard admin. Tại đây bạn có thể xem:
+                        <ul>
+                            <li>Thống kê về người dùng và đánh giá</li>
+                            <li>Hiệu suất của các thuật toán gợi ý</li>
+                            <li>Biểu đồ phân tích dữ liệu anime</li>
+                        </ul>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Mẹo sử dụng</h5>
+            </div>
+            <div class="card-body">
+                <ul>
+                    <li><strong>Đánh giá nhiều anime:</strong> Càng đánh giá nhiều, hệ thống sẽ hiểu sở thích của bạn tốt hơn và gợi ý chính xác hơn.</li>
+                    <li><strong>Đánh giá thành thật:</strong> Đánh giá phản ánh cảm nhận thực của bạn giúp hệ thống học tập tốt hơn.</li>
+                    <li><strong>Kiểm tra chi tiết anime:</strong> Trước khi xem, bạn có thể xem mô tả, thể loại và những anime tương tự.</li>
+                    <li><strong>Cập nhật đánh giá:</strong> Bạn có thể thay đổi đánh giá của mình bất kỳ lúc nào bằng cách nhấn sao mới.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
