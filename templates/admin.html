@@ -41,64 +41,60 @@
 <!-- ========================= -->
 <!-- BIỂU ĐỒ -->
 <!-- ========================= -->
-<h3 class="mb-3"><i class="fas fa-chart-line me-2" style="color: #28a745;"></i>Trực quan dữ liệu</h3>
+<h3 class="mb-3">
+    <i class="fas fa-chart-line me-2 text-success"></i>Trực quan dữ liệu
+</h3>
 
-<!-- Plotly Tabs for Charts -->
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-light">
-        <ul class="nav nav-tabs card-header-tabs" id="chartTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="score-tab" data-bs-toggle="tab" data-bs-target="#scoreChart" type="button" role="tab">
-                    <i class="fas fa-chart-bar me-2"></i>Phân bố Score
+        <ul class="nav nav-tabs card-header-tabs" role="tablist">
+
+            <li class="nav-item">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#cf-data">
+                    <i class="fas fa-users me-2"></i>Dữ liệu đánh giá (CF)
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="rating-tab" data-bs-toggle="tab" data-bs-target="#ratingChart" type="button" role="tab">
-                    <i class="fas fa-star me-2"></i>Phân bố Rating
+
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#content-data">
+                    <i class="fas fa-tags me-2"></i>Nội dung Anime
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="genres-tab" data-bs-toggle="tab" data-bs-target="#genresChart" type="button" role="tab">
-                    <i class="fas fa-tags me-2"></i>Top Genres
+
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#popular-data">
+                    <i class="fas fa-fire me-2"></i>Độ phổ biến
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="heatmap-tab" data-bs-toggle="tab" data-bs-target="#heatmapChart" type="button" role="tab">
-                    <i class="fas fa-fire me-2"></i>Heatmap
-                </button>
-            </li>
+
         </ul>
     </div>
-    
-    <div class="card-body">
-        <div class="tab-content" id="chartTabContent">
-            <!-- Score Distribution Tab -->
-            <div class="tab-pane fade show active" id="scoreChart" role="tabpanel">
-                {{ score_img|safe }}
-            </div>
-            
-            <!-- Rating Distribution Tab -->
-            <div class="tab-pane fade" id="ratingChart" role="tabpanel">
-                {{ rating_dist_img|safe }}
-            </div>
-            
-            <!-- Genres Tab -->
-            <div class="tab-pane fade" id="genresChart" role="tabpanel">
-                {{ genres_img|safe }}
-            </div>
-            
-            <!-- Heatmap Tab -->
-            <div class="tab-pane fade" id="heatmapChart" role="tabpanel">
-                {{ heatmap_img|safe }}
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Top Rated Chart (Full Width) -->
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        {{ top_rated_count_img|safe }}
+    <div class="card-body tab-content">
+
+        <!-- ================= CF DATA ================= -->
+        <div class="tab-pane fade show active" id="cf-data">
+            {{ rating_dist_img|safe }}
+            <hr>
+            {{ user_activity_img|safe }}
+        </div>
+
+        <!-- ================= CONTENT DATA ================= -->
+        <div class="tab-pane fade" id="content-data">
+            {{ genres_img|safe }}
+            <hr>
+            {{ heatmap_img|safe }}
+            <hr>
+            {{ genre_overlap_img|safe }}
+        </div>
+
+        <!-- ================= POPULARITY ================= -->
+        <div class="tab-pane fade" id="popular-data">
+            {{ item_popularity_img|safe }}
+            <hr>
+            {{ top_rated_count_img|safe }}
+        </div>
+
     </div>
 </div>
 
@@ -107,7 +103,7 @@
 <!-- ========================= -->
 <!-- TRẠNG THÁI MODEL -->
 <!-- ========================= -->
-<h3 class="mb-3"><i class="fas fa-brain me-2" style="color: #e83e8c;"></i>Trạng thái mô hình CF SVD</h3>
+<h3 class="mb-3"><i class="fas fa-brain me-2" style="color: #e83e8c;"></i>Trạng thái mô hình CF SGD</h3>
 
 <div class="row mb-4">
     <div class="col-md-3">

@@ -1,29 +1,147 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<h3 class="mb-4"><i class="fas fa-lock me-2" style="color: #dc3545;"></i>Đăng nhập</h3>
+<div class="row">
+    <div class="col-md-6">
+        <h3 class="mb-4">
+            <i class="fas fa-lock me-2" style="color: #dc3545;"></i>Đăng nhập
+        </h3>
 
-{% if error %}
-<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>{{ error }}</div>
-{% endif %}
+        {% if error %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+        </div>
+        {% endif %}
 
-<form method="post" class="w-50">
-    <div class="mb-3">
-        <label class="form-label"><i class="fas fa-user me-2"></i>Tên đăng nhập</label>
-        <input name="username" class="form-control" required>
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">
+                    <i class="fas fa-user me-2"></i>Tên đăng nhập
+                </label>
+                <input name="username" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">
+                    <i class="fas fa-key me-2"></i>Mật khẩu
+                </label>
+                <input type="password" name="password" class="form-control" required>
+            </div>
+
+            <button class="btn btn-primary">
+                <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+            </button>
+
+            <p class="mt-3">
+                Chưa có tài khoản?
+                <a href="/register">Đăng ký ngay</a>
+            </p>
+        </form>
     </div>
 
-    <div class="mb-3">
-        <label class="form-label"><i class="fas fa-key me-2"></i>Mật khẩu</label>
-        <input type="password" name="password" class="form-control" required>
+    <div class="col-md-6">
+        <h5 class="mb-3">
+            <i class="fas fa-users me-2 text-warning"></i>
+            Tài khoản demo
+        </h5>
+
+        <div class="card mb-3 border-success">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-star me-2"></i>
+                Tài khoản đã có đánh giá
+            </div>
+            <div class="card-body p-2">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Password</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>user1</code></td>
+                            <td><code>123</code></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary"
+                                    onclick="fillLogin('user1','123')">
+                                    Điền
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>user2</code></td>
+                            <td><code>123</code></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary"
+                                    onclick="fillLogin('user2','123')">
+                                    Điền
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>user3</code></td>
+                            <td><code>123</code></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary"
+                                    onclick="fillLogin('user3','123')">
+                                    Điền
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card border-secondary">
+            <div class="card-header bg-light">
+                <i class="fas fa-user-clock me-2"></i>
+                Tài khoản chưa có đánh giá
+            </div>
+            <div class="card-body p-2">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Password</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>phu</code></td>
+                            <td><code>123</code></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary"
+                                    onclick="fillLogin('newuser1','123')">
+                                    Điền
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>test</code></td>
+                            <td><code>123</code></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary"
+                                    onclick="fillLogin('newuser2','123')">
+                                    Điền
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
+</div>
 
-    <button class="btn btn-primary"><i class="fas fa-sign-in-alt me-2"></i>Đăng nhập</button>
-
-    <p class="mt-3">
-        Chưa có tài khoản?
-        <a href="/register">Đăng ký ngay</a>
-    </p>
-</form>
+<script>
+function fillLogin(username, password) {
+    document.querySelector('input[name="username"]').value = username;
+    document.querySelector('input[name="password"]').value = password;
+}
+</script>
 
 {% endblock %}

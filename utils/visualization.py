@@ -8,20 +8,35 @@ from itertools import combinations
 
 
 # ==========================
-# 1) Histogram Score
+# 4) Rating Distribution (Bar Chart)
 # ==========================
-def score_distribution(df):
-    """Distribution of anime scores"""
-    fig = px.histogram(
-        df,
-        x="score",
-        nbins=20,
-        title="Phân bố điểm số Anime",
-        labels={"score": "Điểm", "count": "Số lượng"},
-        color_discrete_sequence=["#FF7F0E"]
+def rating_distribution(df_rating):
+    """Distribution of ratings (1-10 scale)"""
+    if df_rating.empty or "rating" not in df_rating.columns:
+        fig = go.Figure()
+        fig.add_annotation(text="Chưa có dữ liệu đánh giá", showarrow=False)
+        fig.update_layout(title="Phân bố đánh giá người dùng", height=500)
+        return fig.to_html(include_plotlyjs=False, div_id="rating-dist-chart")
+    
+    rating_counts = df_rating["rating"].value_counts().sort_index()
+    
+    if len(rating_counts) == 0:
+        fig = go.Figure()
+        fig.add_annotation(text="Chưa có dữ liệu đánh giá", showarrow=False)
+        fig.update_layout(title="Phân bố đánh giá người dùng", height=500)
+        return fig.to_html(include_plotlyjs=False, div_id="rating-dist-chart")
+    
+    fig = px.bar(
+        x=rating_counts.index,
+        y=rating_counts.values,
+        title="Phân bố đánh giá người dùng",
+        labels={"x": "Điểm đánh giá", "y": "Số lượng"},
+        color=rating_counts.values,
+        color_continuous_scale="Viridis"
     )
+    fig.update_xaxes(tickmode='linear', tick0=1, dtick=1)
     fig.update_layout(height=500, showlegend=False)
-    return fig.to_html(include_plotlyjs='cdn', div_id="score-dist-chart")
+    return fig.to_html(include_plotlyjs='cdn', div_id="rating-dist-chart")
 
 
 # ==========================
@@ -90,36 +105,25 @@ def correlation_heatmap(df):
     return fig.to_html(include_plotlyjs=False, div_id="heatmap-chart")
 
 
-# ==========================
-# 4) Rating Distribution (Bar Chart)
-# ==========================
-def rating_distribution(df_rating):
-    """Distribution of ratings (1-10 scale)"""
-    if df_rating.empty or "rating" not in df_rating.columns:
+def user_activity_distribution(df_rating):
+    """Histogram số lượng rating trên mỗi user"""
+    if df_rating.empty:
         fig = go.Figure()
-        fig.add_annotation(text="Chưa có dữ liệu đánh giá", showarrow=False)
-        fig.update_layout(title="Phân bố đánh giá người dùng", height=500)
-        return fig.to_html(include_plotlyjs=False, div_id="rating-dist-chart")
-    
-    rating_counts = df_rating["rating"].value_counts().sort_index()
-    
-    if len(rating_counts) == 0:
-        fig = go.Figure()
-        fig.add_annotation(text="Chưa có dữ liệu đánh giá", showarrow=False)
-        fig.update_layout(title="Phân bố đánh giá người dùng", height=500)
-        return fig.to_html(include_plotlyjs=False, div_id="rating-dist-chart")
-    
-    fig = px.bar(
-        x=rating_counts.index,
-        y=rating_counts.values,
-        title="Phân bố đánh giá người dùng",
-        labels={"x": "Điểm đánh giá", "y": "Số lượng"},
-        color=rating_counts.values,
-        color_continuous_scale="Viridis"
+        fig.add_annotation(text="Chưa có dữ liệu rating", showarrow=False)
+        fig.update_layout(title="Phân bố mức độ hoạt động người dùng")
+        return fig.to_html(include_plotlyjs=False, div_id="user-activity-chart")
+
+    counts = df_rating.groupby("user_id").size()
+
+    fig = px.histogram(
+        counts,
+        nbins=30,
+        title="Phân bố số lượng đánh giá trên mỗi người dùng",
+        labels={"value": "Số lượng rating", "count": "Số người dùng"},
+        color_discrete_sequence=["#1f77b4"]
     )
-    fig.update_xaxes(tickmode='linear', tick0=1, dtick=1)
     fig.update_layout(height=500, showlegend=False)
-    return fig.to_html(include_plotlyjs=False, div_id="rating-dist-chart")
+    return fig.to_html(include_plotlyjs=False, div_id="user-activity-chart")
 
 
 # ==========================
@@ -163,45 +167,6 @@ def top_rated_count_chart(df_rating, df_anime):
     fig.update_layout(height=600, showlegend=False)
     return fig.to_html(include_plotlyjs=False, div_id="top-rated-chart")
 
-def similarity_heatmap(cb_model, df_anime, top_n=20):
-    """
-    Heatmap similarity của 20 anime (hoặc số tùy chọn)
-    dùng TF-IDF vector từ Content-Based model.
-    """
-    # Lấy 20 anime ngẫu nhiên hoặc top popularity
-    sample = df_anime.head(top_n)
-    titles = sample["title"].tolist()
-    ids = sample["id"].tolist()
-
-    # Lấy vector TF-IDF từ model
-    vectors = []
-    for aid in ids:
-        vectors.append(cb_model.vectorize(aid))  # bạn đã có hàm này trong model TF-IDF
-
-    vectors = np.vstack(vectors)
-
-    # cosine similarity
-    sim_matrix = cosine_similarity(vectors)
-
-    fig = go.Figure(data=go.Heatmap(
-        z=sim_matrix,
-        x=titles,
-        y=titles,
-        colorscale="Viridis",
-        zmin=0,
-        zmax=1,
-        text=np.round(sim_matrix, 2),
-        texttemplate="%{text}",
-        textfont={"size": 10}
-    ))
-
-    fig.update_layout(
-        title="Heatmap Similarity Anime–Anime (Cosine)",
-        height=800,
-        width=800
-    )
-
-    return fig.to_html(full_html=False, include_plotlyjs=False, div_id="sim-heatmap")
 
 def genre_overlap_heatmap(df_anime):
     # Chuẩn hóa genres_list thành list python
@@ -239,30 +204,23 @@ def genre_overlap_heatmap(df_anime):
 
     return fig.to_html(full_html=False, include_plotlyjs=False, div_id="genre-heatmap") 
 
-def sparse_matrix_heatmap(df_rating, df_anime, top_users=30, top_items=30):
-    # Lấy user và item phổ biến nhất
-    top_u = df_rating["user_id"].value_counts().head(top_users).index
-    top_i = df_rating["anime_id"].value_counts().head(top_items).index
+def item_popularity_distribution(df_rating):
+    """Histogram số lượng rating trên mỗi anime"""
+    if df_rating.empty:
+        fig = go.Figure()
+        fig.add_annotation(text="Chưa có dữ liệu rating", showarrow=False)
+        fig.update_layout(title="Phân bố độ phổ biến Anime")
+        return fig.to_html(include_plotlyjs=False, div_id="item-popularity-chart")
 
-    df = df_rating[df_rating["user_id"].isin(top_u) & df_rating["anime_id"].isin(top_i)]
+    counts = df_rating.groupby("anime_id").size()
 
-    pivot = df.pivot_table(
-        index="user_id",
-        columns="anime_id",
-        values="rating",
-        fill_value=0
+    fig = px.histogram(
+        counts,
+        nbins=30,
+        title="Phân bố số lượng đánh giá trên mỗi Anime",
+        labels={"value": "Số lượng rating", "count": "Số Anime"},
+        color_discrete_sequence=["#d62728"]
     )
+    fig.update_layout(height=500, showlegend=False)
+    return fig.to_html(include_plotlyjs=False, div_id="item-popularity-chart")
 
-    fig = go.Figure(data=go.Heatmap(
-        z=pivot.values,
-        x=pivot.columns,
-        y=pivot.index,
-        colorscale="YlOrRd"
-    ))
-
-    fig.update_layout(
-        title="User–Item Rating Matrix (Top Users/Items)",
-        height=700
-    )
-
-    return fig.to_html(full_html=False, include_plotlyjs=False, div_id="matrix-heatmap")

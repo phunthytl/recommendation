@@ -1,18 +1,12 @@
-import os
-import json
-import pandas as pd
-import numpy as np
+import os, json
+import pandas as pd, numpy as np
 import matplotlib
 matplotlib.use('Agg')
 from datetime import datetime
-
 from flask import Flask, render_template, request, redirect, url_for, session
 
 from models.recommend import RecommenderSystem
-from utils.visualization import (
-    score_distribution, top_genres, correlation_heatmap,
-    rating_distribution, top_rated_count_chart
-)
+from utils.visualization import *
 from utils.evaluation import (
     evaluate_cf_rmse_mae, precision_recall_at_k, coverage, evaluate_content_based
 )
@@ -363,27 +357,27 @@ def admin_dashboard():
     df_users = pd.read_csv(USER_FILE)
     df_rating = pd.read_csv(RATING_FILE)
 
-    # ========== BASIC STATISTICS ==========
+    # ==========================
+    # BASIC STATISTICS
+    # ==========================
     total_items = len(df_anime)
     total_users = len(df_users)
     total_rating = len(df_rating)
     users_with_rating = df_rating["user_id"].nunique()
 
-    # ========== RATING ANALYSIS ==========
-    # Top anime with most ratings
+    # ==========================
+    # RATING ANALYSIS TABLES
+    # ==========================
     top_rated = (
         df_rating.groupby("anime_id")
         .size()
         .reset_index(name="count")
         .sort_values("count", ascending=False)
         .head(10)
+        .merge(df_anime[["id", "title", "image"]],
+               left_on="anime_id", right_on="id")
     )
 
-    top_rated = top_rated.merge(
-        df_anime[["id", "title", "image"]], left_on="anime_id", right_on="id"
-    )
-
-    # Top average scores (min 5 ratings)
     avg_rating = (
         df_rating.groupby("anime_id")["rating"]
         .agg(["mean", "count"])
@@ -392,119 +386,99 @@ def admin_dashboard():
     avg_rating = avg_rating[avg_rating["count"] >= 5]
     avg_rating = avg_rating.sort_values("mean", ascending=False).head(10)
     avg_rating = avg_rating.merge(
-        df_anime[["id", "title", "image"]], left_on="anime_id", right_on="id"
+        df_anime[["id", "title", "image"]],
+        left_on="anime_id", right_on="id"
     )
 
-    # ========== MODEL STATUS ==========
-    model_status = "Loaded" if rec_system.cf.user_factors is not None else "Not loaded"
+    # ==========================
+    # MODEL STATUS
+    # ==========================
+    model_status = "Loaded" if rec_system.cf.P is not None else "Not loaded"
     num_cf_users = len(rec_system.cf.user_id_to_idx)
     num_cf_items = len(rec_system.cf.item_id_to_idx)
     num_factors = rec_system.cf.n_factors
 
-    # ========== VISUALIZATION CHARTS ==========
-    # Try to load from cache first
+    # ==========================
+    # VISUALIZATION (CACHE)
+    # ==========================
     charts = get_charts_from_cache()
-    
+
     if charts is None:
-        # Cache miss - regenerate all charts
-        print("📊 Regenerating charts (cache miss)...")
-        score_img = score_distribution(df_anime)
+        print("📊 Regenerating charts...")
+
+        rating_dist_img = rating_distribution(df_rating)
+        user_activity_img = user_activity_distribution(df_rating)
+        item_popularity_img = item_popularity_distribution(df_rating)
+
         genres_img = top_genres(df_anime)
         heatmap_img = correlation_heatmap(df_anime)
-        rating_dist_img = rating_distribution(df_rating)
+        genre_overlap_img = genre_overlap_heatmap(df_anime)
+
         top_rated_count_img = top_rated_count_chart(df_rating, df_anime)
-        
-        # Save to cache
+
         charts = {
-            'score_img': score_img,
-            'genres_img': genres_img,
-            'heatmap_img': heatmap_img,
-            'rating_dist_img': rating_dist_img,
-            'top_rated_count_img': top_rated_count_img
+            "rating_dist_img": rating_dist_img,
+            "user_activity_img": user_activity_img,
+            "item_popularity_img": item_popularity_img,
+            "genres_img": genres_img,
+            "heatmap_img": heatmap_img,
+            "genre_overlap_img": genre_overlap_img,
+            "top_rated_count_img": top_rated_count_img,
         }
         save_charts_to_cache(charts)
     else:
-        # Cache hit - use cached charts
         print("⚡ Using cached charts")
-        score_img = charts['score_img']
-        genres_img = charts['genres_img']
-        heatmap_img = charts['heatmap_img']
-        rating_dist_img = charts['rating_dist_img']
-        top_rated_count_img = charts['top_rated_count_img']
 
-    # ========== MODEL EVALUATION ==========
-    # Try to load from cache first
+    # ==========================
+    # MODEL EVALUATION
+    # ==========================
     eval_metrics = get_eval_from_cache()
-    
+
     if eval_metrics is None:
-        # Cache miss - recalculate
         print("📈 Calculating evaluation metrics...")
         if len(df_rating) > 20:
             rmse, mae = evaluate_cf_rmse_mae(rec_system.cf, df_rating)
             cf_precision, cf_recall = precision_recall_at_k(rec_system.cf, df_rating, k=10)
             cf_cov = coverage(rec_system.cf, total_items)
         else:
-            rmse, mae = 0, 0
-            cf_precision, cf_recall = 0, 0
-            cf_cov = 0  
+            rmse = mae = cf_precision = cf_recall = cf_cov = 0
 
-        cb_precision, cb_recall = evaluate_content_based(rec_system, df, k=10)
-        
+        cb_precision, cb_recall = evaluate_content_based(rec_system, df_anime, k=10)
+
         eval_metrics = {
-            'rmse': float(rmse) if rmse is not None else 0,
-            'mae': float(mae) if mae is not None else 0,
-            'cf_precision': float(cf_precision),
-            'cf_recall': float(cf_recall),
-            'cf_cov': float(cf_cov),
-            'cb_precision': float(cb_precision),
-            'cb_recall': float(cb_recall)
+            "rmse": rmse,
+            "mae": mae,
+            "cf_precision": cf_precision,
+            "cf_recall": cf_recall,
+            "cf_cov": cf_cov,
+            "cb_precision": cb_precision,
+            "cb_recall": cb_recall,
         }
         save_eval_to_cache(eval_metrics)
-    else:
-        print("⚡ Using cached evaluation metrics")
-    
-    rmse = eval_metrics['rmse']
-    mae = eval_metrics['mae']
-    cf_precision = eval_metrics['cf_precision']
-    cf_recall = eval_metrics['cf_recall']
-    cf_cov = eval_metrics['cf_cov']
-    cb_precision = eval_metrics['cb_precision']
-    cb_recall = eval_metrics['cb_recall']
 
     return render_template(
         "admin.html",
-        # Basic statistics
+        # stats
         total_items=total_items,
         total_users=total_users,
         total_rating=total_rating,
         users_with_rating=users_with_rating,
-        # Rating analytics
-        top_rated=top_rated.to_dict(orient="records"),
-        avg_rating=avg_rating.to_dict(orient="records"),
-        # Model statistics
+
+        top_rated=top_rated.to_dict("records"),
+        avg_rating=avg_rating.to_dict("records"),
+
         model_status=model_status,
         num_cf_users=num_cf_users,
         num_cf_items=num_cf_items,
         num_factors=num_factors,
-        # Charts
-        score_img=score_img,
-        genres_img=genres_img,
-        heatmap_img=heatmap_img,
-        rating_dist_img=rating_dist_img,
-        top_rated_count_img=top_rated_count_img,
-        # Full data
-        users=df_users.to_dict(orient="records"),
-        anime=df_anime.to_dict(orient="records"),
-        ratings=df_rating.to_dict(orient="records"),
-        # Evaluation metrics
-        rmse=rmse,
-        mae=mae,
-        cf_precision=cf_precision,
-        cf_recall=cf_recall,
-        cf_cov=cf_cov,
-        cb_precision=cb_precision,
-        cb_recall=cb_recall,
+
+        # charts
+        **charts,
+
+        # evaluation
+        **eval_metrics,
     )
+
 
 
 @app.route("/intro")
