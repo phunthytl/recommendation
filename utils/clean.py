@@ -3,32 +3,41 @@ import numpy as np
 import re
 import json
 
-# LOAD DATA
+# Đọc dữ liệu anime
 df = pd.read_csv("data/anime_data.csv")
-print("Original shape:", df.shape)
+print("Kích thước dữ liệu ban đầu:", df.shape)
 
-# 1. Remove duplicates
+# Loại bỏ các anime bị trùng tên để tránh nhiễu dữ liệu
 df = df.drop_duplicates(subset=["title"])
-print("Removed duplicates. New shape:", df.shape)
+print("Đã loại bỏ trùng lặp. Kích thước mới:", df.shape)
 
-# 2. Handle missing values
+# Điền giá trị rỗng cho synopsis để tránh lỗi xử lý text
 df["synopsis"] = df["synopsis"].fillna("")
-df["genres"] = df["genres"].fillna("")
-df["episodes"] = df["episodes"].fillna(0).astype(int)
-df["score"] = df["score"].fillna(df["score"].mean())
-df["favorites"] = df["favorites"].fillna(0)
-print("Missing values handled.")
 
-# 3. Clean genres
+# Điền giá trị rỗng cho genres để dễ tách thể loại
+df["genres"] = df["genres"].fillna("")
+
+# Điền số tập bị thiếu bằng 0 và ép kiểu int
+df["episodes"] = df["episodes"].fillna(0).astype(int)
+
+# Điền score bị thiếu bằng giá trị trung bình toàn bộ dataset
+df["score"] = df["score"].fillna(df["score"].mean())
+
+# Điền favorites bị thiếu bằng 0
+df["favorites"] = df["favorites"].fillna(0)
+print("Đã xử lý các giá trị bị thiếu.")
+
+# Hàm tách chuỗi genres thành danh sách thể loại
 def clean_genres(g):
     if isinstance(g, str):
         return [x.strip() for x in g.split(",") if x.strip() != ""]
     return []
 
+# Tách genres để tạo cột genres_list
 df["genres_list"] = df["genres"].apply(clean_genres)
-print("Genres cleaned → genres_list")
+print("Đã làm sạch genres và tạo cột genres_list.")
 
-# 4. Clean synopsis text
+# Hàm làm sạch văn bản synopsis
 def clean_text(txt):
     if not isinstance(txt, str):
         return ""
@@ -37,25 +46,28 @@ def clean_text(txt):
     txt = re.sub(r"\s+", " ", txt)
     return txt.strip()
 
+# Tạo cột synopsis_clean đã được làm sạch
 df["synopsis_clean"] = df["synopsis"].apply(clean_text)
-print("Cleaned synopsis text")
+print("Đã làm sạch nội dung synopsis.")
 
+# Xóa cột synopsis gốc để giảm dung lượng và trùng lặp
 df = df.drop(columns=["synopsis"])
 
-# 5. Normalize numeric columns
+# Danh sách các cột số cần chuẩn hóa
 numeric_cols = ["episodes", "score", "rank", "popularity", "favorites"]
+
+# Ép kiểu numeric và xử lý dữ liệu không hợp lệ
 for col in numeric_cols:
     df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
-print("Normalized numeric data")
+print("Đã chuẩn hóa các cột dữ liệu số.")
 
-# 6. Save cleaned CSV & JSON
+# Lưu dữ liệu đã làm sạch ra
 df.to_csv("data/anime_clean.csv", index=False, encoding="utf-8-sig")
-print("Saved anime_clean.csv")
+print("Đã lưu file anime_clean.csv.")
 
 json_path = "data/anime_clean.json"
-
 df.to_json(json_path, orient="records", force_ascii=False, indent=2)
+print("Đã lưu file anime_clean.json.")
 
-print("Saved anime_clean.json")
-print("Cleaning & Export Completed!")
+print("Hoàn tất quá trình làm sạch và xuất dữ liệu.")

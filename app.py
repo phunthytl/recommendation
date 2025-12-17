@@ -11,43 +11,39 @@ from utils.evaluation import (
     evaluate_cf_rmse_mae, precision_recall_at_k, coverage, evaluate_content_based
 )
 
-# ===========================
-# CONFIGURATION
-# ===========================
+# CẤU HÌNH ỨNG DỤNG
 app = Flask(__name__)
 app.secret_key = "anime-secret-key"
 
-# Constants
+# Các đường dẫn và tham số cấu hình chính
 DATA_PATH = "data/anime_clean.csv"
 USER_FILE = "data/users.csv"
 RATING_FILE = "data/ratings.csv"
 MODEL_DIR = "models"
 ITEMS_PER_PAGE = 24
 TOP_K = 10
-CHARTS_CACHE_FILE = ".charts_cache.json"
-EVAL_CACHE_FILE = ".eval_cache.json"
+CHARTS_CACHE_FILE = "utils/.charts_cache.json"
+EVAL_CACHE_FILE = "utils/.eval_cache.json"
 
-
-# LOAD DATA
+# Load dữ liệu anime đã làm sạch
 df = pd.read_csv(DATA_PATH)
 
-
-# INITIALIZE RECOMMENDER SYSTEM
+# Khởi tạo hệ thống gợi ý với đường dẫn dữ liệu và thư mục model
 rec_system = RecommenderSystem(
     anime_path=DATA_PATH,
     rating_path=RATING_FILE,
     model_dir=MODEL_DIR
 )
 
+# Thử load model đã huấn luyện để dùng ngay khi chạy app
 try:
     rec_system.load()
     rec_system.load_data()
-    print("✅ Loaded model-based recommender from models/")
+    print("Đã tải thành công hệ thống gợi ý từ thư mục models")
 except Exception as e:
-    print(f"⚠️  Warning: Could not load recommender models: {e}")
-
-
-# ENSURE DATA FILES EXIST
+    print(f"Cảnh báo: Không thể tải các mô hình gợi ý: {e}")
+    
+# Tạo file csv nếu chưa có để tránh lỗi đọc/ghi
 if not os.path.exists(USER_FILE):
     pd.DataFrame(columns=["user_id", "username", "password"]).to_csv(
         USER_FILE, index=False
@@ -61,9 +57,8 @@ if not os.path.exists(RATING_FILE):
     print(f"Created {RATING_FILE}")
 
 
-# UTILITY FUNCTIONS
+# Tạo danh sách phân trang
 def get_pagination(page, total_pages):
-    """Generate pagination list for navigation."""
     pagination = []
     if page > 3:
         pagination.append(1)
@@ -78,14 +73,13 @@ def get_pagination(page, total_pages):
         pagination.append(total_pages)
     return pagination
 
-
+# Lấy thời gian sửa file làm hash đơn giản
 def get_file_hash(filepath):
-    """Get file modification time as a simple hash."""
     if not os.path.exists(filepath):
         return None
     return os.path.getmtime(filepath)
 
-
+# Lấy biểu đồ từ cache nếu có
 def get_charts_from_cache():
     if os.path.exists(CHARTS_CACHE_FILE):
         try:
@@ -96,7 +90,7 @@ def get_charts_from_cache():
             return None
     return None
 
-
+# Lưu biểu đồ vào cache
 def save_charts_to_cache(charts):
     try:
         cache = {
@@ -108,7 +102,7 @@ def save_charts_to_cache(charts):
     except:
         pass
 
-
+# Lấy kết quả đánh giá model từ cache
 def get_eval_from_cache():
     if os.path.exists(EVAL_CACHE_FILE):
         try:
@@ -119,7 +113,7 @@ def get_eval_from_cache():
             return None
     return None
 
-
+# Lưu kết quả đánh giá model vào cache
 def save_eval_to_cache(metrics):
     try:
         cache = {
@@ -132,25 +126,29 @@ def save_eval_to_cache(metrics):
         pass
 
 
-
+# Trang chủ hiển thị danh sách anime kèm phân trang
 @app.route("/")
 def home():
-    """Display homepage with paginated anime list."""
+    # Lấy số trang hiện tại
     page = int(request.args.get("page", 1))
     per_page = ITEMS_PER_PAGE
 
+    # Tính tổng số trang
     total_items = len(df)
     total_pages = (total_items + per_page - 1) // per_page
 
+    # Chuẩn hóa số trang
     if page < 1:
         page = 1
     if page > total_pages:
         page = total_pages
 
+    # Cắt dữ liệu theo trang
     start = (page - 1) * per_page
     end = start + per_page
     items = df.iloc[start:end]
 
+    # Tạo thanh phân trang
     pagination = get_pagination(page, total_pages)
 
     return render_template(
@@ -163,31 +161,27 @@ def home():
         pagination=pagination,
     )
 
-
-# Chi tiết anime – GỢI Ý CONTENT-BASED
+# Chi tiết anime kèm gợi ý Content-Based
 @app.route("/anime/<int:anime_id>")
 def detail(anime_id):
-    """Display anime details with content-based recommendations."""
+    # Lấy thông tin anime theo id
     anime = df[df["id"] == anime_id]
     if anime.empty:
         return "Anime not found", 404
 
     anime = anime.iloc[0]
 
-    # Content-based recommendations using TF-IDF
+    # Gợi ý anime tương tự bằng Content-Based
     recommendations = []
     try:
         recommendations = rec_system.recommend_content(anime_id, top_k=TOP_K)
     except Exception as e:
         print(f"Content-based recommendation failed: {e}")
 
-    # Check user rating
-    user_fav = False
+    # Lấy rating của user nếu đã đăng nhập
     user_rating = None
-
     if "user_id" in session:
         user_id = session["user_id"]
-
         if os.path.exists(RATING_FILE):
             rating_df = pd.read_csv(RATING_FILE)
             row = rating_df[
@@ -201,17 +195,12 @@ def detail(anime_id):
         "detail.html",
         anime=anime,
         recommendations=recommendations,
-        is_favorite=user_fav,
         user_rating=user_rating,
     )
 
-
-# ===========================
-# AUTHENTICATION ROUTES
-# ===========================
+# Đăng nhập
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    """User login page and authentication."""
     if request.method == "POST":
         username = request.form["username"].strip()
         password = request.form["password"].strip()
@@ -233,7 +222,7 @@ def login():
 
     return render_template("login.html")
 
-
+# Đăng ký
 @app.route("/register", methods=["GET", "POST"])
 def register():
     """User registration page."""
@@ -253,7 +242,7 @@ def register():
 
     return render_template("register.html")
 
-
+# Đăng xuất
 @app.route("/logout")
 def logout():
     """User logout."""
@@ -261,12 +250,10 @@ def logout():
     return redirect(url_for("home"))
 
 
-# ===========================
-# RATING ROUTES
-# ===========================
+# Đánh giá anime
 @app.route("/rate/<int:anime_id>/<int:score>")
 def rate(anime_id, score):
-    """Submit or update user rating for an anime."""
+    # Ghi hoặc cập nhật rating của user cho một anime
     if "user_id" not in session:
         return redirect(url_for("login"))
 
@@ -280,17 +267,16 @@ def rate(anime_id, score):
     mask = (df_rating["user_id"] == user_id) & (df_rating["anime_id"] == anime_id)
 
     if mask.any():
-        df_rating.loc[mask, "rating"] = score  # update existing
+        df_rating.loc[mask, "rating"] = score
     else:
-        df_rating.loc[len(df_rating)] = [user_id, anime_id, score]  # insert new
+        df_rating.loc[len(df_rating)] = [user_id, anime_id, score]
 
     df_rating.to_csv(RATING_FILE, index=False)
     return redirect(url_for("detail", anime_id=anime_id))
 
-
 @app.route("/rate/delete/<int:anime_id>")
 def delete_rating(anime_id):
-    """Delete user rating for an anime."""
+    # Xóa rating của user cho một anime
     if "user_id" not in session:
         return redirect(url_for("login"))
 
@@ -308,13 +294,9 @@ def delete_rating(anime_id):
     return redirect(url_for("rating_history"))
 
 
-
-# ===========================
-# RECOMMENDATION ROUTES
-# ===========================
+# Lịch sử rating và gợi ý theo Collaborative Filtering
 @app.route("/ratings")
 def rating_history():
-    """Display user's rating history and collaborative filtering recommendations."""
     if "user_id" not in session:
         return redirect(url_for("login"))
 
@@ -327,9 +309,12 @@ def rating_history():
 
     anime_df = df
 
-    user_ratings = rating_df[rating_df["user_id"] == user_id]
+    user_ratings = (
+        rating_df[rating_df["user_id"] == user_id]
+        .sort_index(ascending=False)
+    )
 
-    # Merge ratings with anime info
+    # Gộp rating với thông tin anime để render UI
     merged = user_ratings.merge(
         anime_df, left_on="anime_id", right_on="id", how="left"
     )
@@ -346,28 +331,26 @@ def rating_history():
             }
         )
 
+    # Sinh gợi ý CF dựa trên lịch sử rating hiện tại
     recommendations = rec_system.recommend_cf(user_id, top_k=TOP_K)
 
     return render_template("ratings.html", ratings=ratings, recommendations=recommendations)
 
 
+# Trang admin hiển thị thống kê, biểu đồ và đánh giá mô hình
 @app.route("/admin")
 def admin_dashboard():
     df_anime = df.copy()
     df_users = pd.read_csv(USER_FILE)
     df_rating = pd.read_csv(RATING_FILE)
 
-    # ==========================
-    # BASIC STATISTICS
-    # ==========================
+    # Thống kê cơ bản
     total_items = len(df_anime)
     total_users = len(df_users)
     total_rating = len(df_rating)
     users_with_rating = df_rating["user_id"].nunique()
 
-    # ==========================
-    # RATING ANALYSIS TABLES
-    # ==========================
+    # Phân tích rating
     top_rated = (
         df_rating.groupby("anime_id")
         .size()
@@ -390,21 +373,17 @@ def admin_dashboard():
         left_on="anime_id", right_on="id"
     )
 
-    # ==========================
-    # MODEL STATUS
-    # ==========================
+    # Trạng thái mô hình
     model_status = "Loaded" if rec_system.cf.P is not None else "Not loaded"
     num_cf_users = len(rec_system.cf.user_id_to_idx)
     num_cf_items = len(rec_system.cf.item_id_to_idx)
     num_factors = rec_system.cf.n_factors
 
-    # ==========================
-    # VISUALIZATION (CACHE)
-    # ==========================
+    # Biểu đồ
     charts = get_charts_from_cache()
 
     if charts is None:
-        print("📊 Regenerating charts...")
+        print("Đang tạo lại các biểu đồ thống kê...")
 
         rating_dist_img = rating_distribution(df_rating)
         user_activity_img = user_activity_distribution(df_rating)
@@ -427,15 +406,13 @@ def admin_dashboard():
         }
         save_charts_to_cache(charts)
     else:
-        print("⚡ Using cached charts")
+        print("Sử dụng biểu đồ từ bộ nhớ cache")
 
-    # ==========================
-    # MODEL EVALUATION
-    # ==========================
+    # Đánh giá mô hình
     eval_metrics = get_eval_from_cache()
 
     if eval_metrics is None:
-        print("📈 Calculating evaluation metrics...")
+        print("Đang tính toán các chỉ số đánh giá mô hình...")
         if len(df_rating) > 20:
             rmse, mae = evaluate_cf_rmse_mae(rec_system.cf, df_rating)
             cf_precision, cf_recall = precision_recall_at_k(rec_system.cf, df_rating, k=10)
@@ -458,7 +435,6 @@ def admin_dashboard():
 
     return render_template(
         "admin.html",
-        # stats
         total_items=total_items,
         total_users=total_users,
         total_rating=total_rating,
@@ -472,15 +448,12 @@ def admin_dashboard():
         num_cf_items=num_cf_items,
         num_factors=num_factors,
 
-        # charts
         **charts,
-
-        # evaluation
         **eval_metrics,
     )
 
 
-
+# Giới thiệu
 @app.route("/intro")
 def intro():
     return render_template("intro.html")
